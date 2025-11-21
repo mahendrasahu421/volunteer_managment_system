@@ -1,0 +1,2808 @@
+<?php
+ob_start();
+defined('BASEPATH') or exit('No direct script access allowed');
+
+class Login extends MY_Controller
+{
+    function __construct()
+    {
+        parent::__construct();
+        error_reporting(0);
+        $CI = &get_instance();
+        $CI->load->library('Get_library');
+        $this->load->model('curl/Curl_model');
+        $this->load->model('crud/Crud_modal');
+        $this->load->helper('url', 'form');
+        $this->load->model('LoginModel');
+        $this->load->library('Phpmailer');
+        //$this->load->library('session');
+        date_default_timezone_set('Asia/Kolkata');
+    }
+
+    public function index()
+    {
+
+        echo '<script>window.location.href = "' . base_url() . 'login"</script>';
+    }
+
+    public function login()
+    {
+        //echo "work";exit;
+        $res['email'] = "";
+        $res['password'] = "";
+        if ($this->input->post()) {
+            $res['email'] = $this->input->post('email');
+            $res['password'] = $this->input->post('password');
+            if ($this->input->post('signin') == 'signin') {
+                $rules_array = array(
+                    array(
+                        'field' => 'email',
+                        'label' => 'Email Address',
+                        'rules' => 'trim|required',
+                        'errors' => array(
+                            'required' => 'Enter Email Address.',
+                        ),
+                    ),
+                    array(
+                        'field' => 'password',
+                        'label' => 'Password',
+                        'rules' => 'trim|required',
+                        'errors' => array(
+                            'required' => 'Enter Password',
+                        ),
+                    ),
+                );
+
+                $this->form_validation->set_rules($rules_array);
+                if ($this->form_validation->run() == TRUE) {
+                    $email = $this->input->post('email');
+                    $password = $this->input->post('password');
+                    $fields = array(
+                        'role_id',
+                        'emp_password',
+                        'emp_name',
+                        'emp_email',
+                        'emp_id',
+                        'region_id',
+                        'sid',
+                        'status',
+                    );
+                    $where = array(
+                        'emp_email' => $email,
+                    );
+                    $limit = '';
+                    $order_by = '';
+                    $results = $this->Curl_model->fetch_data('employee', $fields, $where, $limit, $order_by);
+                    // echo "<pre>";
+                    // print_r($results);exit;
+                    if (!empty($results) && $results != '') {
+                        $r_password = $results['emp_password'];
+
+                        if ($r_password == md5($password)) {
+                            if ($results['role_id'] == 1) {
+                                if ($results['status'] == 1) {
+                                    $this->session->set_userdata('emp_id', $results['emp_id']);
+                                    $this->session->set_userdata('sid', $results['sid']);
+                                    $this->session->set_userdata('role_id', $results['role_id']);
+                                    $this->session->set_userdata('region_id', $results['region_id']);
+
+                                    $this->session->set_userdata('emp_name', $results['emp_name']);
+                                    $this->session->set_userdata('emp_email', $results['emp_email']);
+                                    echo '<script>window.location.href = "' . base_url() . 'admin-dashboard"</script>';
+                                } else {
+                                    $this->session->set_userdata('error', 'Your Login has been block.');
+                                }
+                            } else {
+
+                                $this->session->set_userdata('emp_id', $results['emp_id']);
+                                $this->session->set_userdata('sid', $results['sid']);
+                                $this->session->set_userdata('region_id', $results['region_id']);
+                                $this->session->set_userdata('role_id', $results['role_id']);
+                                $this->session->set_userdata('emp_name', $results['emp_name']);
+                                $this->session->set_userdata('emp_email', $results['emp_email']);
+                                echo '<script>window.location.href = "' . base_url() . 'admin-dashboard"</script>';
+                            }
+                        } else {
+
+                            $this->session->set_userdata('error', 'Wrong Password');
+                        }
+                    } else {
+
+                        $this->session->set_userdata('error', 'Please Enter Valid Email Address');
+                    }
+                }
+            }
+        }
+
+        $this->load->view('login', $res);
+    }
+
+
+
+    public function resetPassword()
+    {
+        $CI = &get_instance();
+        $link2 = $this->uri->segment(2);
+        $res['link2'] = $link2;
+        if ($link2 != '') {
+            $email = base64_decode(str_pad(strtr($link2, '-_', '+/'), strlen($link2) % 4, '=', STR_PAD_RIGHT));
+            $where = array(
+                'email' => $email,
+            );
+            $fields = array(
+                'mailConfrmationStatus'
+            );
+            $results = $this->Curl_model->fetch_data('users', $fields, $where, "", "");
+            print_r($results);
+            if ($results['mailConfrmationStatus'] == 1) {
+                if ($this->input->post()) {
+                    $rules_array = array(
+                        array(
+                            'field' => 'npass',
+                            'label' => 'New Password',
+                            'rules' => 'trim|required|min_length[8]',
+                            'errors' => array(
+                                'required' => 'Please Enter New Password',
+                                'min_length' => 'Please Enter New Password at least 8 digits',
+                            ),
+                        ),
+                        array(
+                            'field' => 'cnpass',
+                            'label' => 'Confirm New Password',
+                            'rules' => 'trim|required|matches[npass]',
+                            'errors' => array(
+                                'required' => 'Please Enter Confirm New Password',
+                                'matches' => 'Confirm New Password Not Match',
+                            ),
+                        ),
+                    );
+
+                    $this->form_validation->set_rules($rules_array);
+                    if ($this->form_validation->run() == TRUE) {
+                        $npass = $CI->get_library->encode($this->input->post('npass'));
+                        $where = array(
+                            'email' => $email,
+                        );
+                        $fields = array(
+                            'password' => $npass
+                        );
+                        $results = $this->Curl_model->update_data('users', $fields, $where);
+                        if ($results) {
+                            $res['results'] = "Password has been reseted.";
+                            $res['href'] = base_url('login');
+                            $res['btn'] = "Login Now";
+                            $res['heading'] = "Successfull";
+                            $this->load->view('error', $res);
+                        }
+                    } else {
+                        $this->load->view('reset', $res);
+                    }
+                } else {
+                    $this->load->view('reset', $res);
+                }
+            } else {
+                $res['results'] = "This Link has been expired";
+                $res['href'] = base_url();
+                $res['btn'] = "Go Home";
+                $res['heading'] = "Error!";
+                $this->load->view('error', $res);
+            }
+        } else {
+            $res['results'] = "Invalid Link";
+            $res['href'] = base_url();
+            $res['btn'] = "Go Home";
+            $res['heading'] = "Error!";
+            $this->load->view('error', $res);
+        }
+        $this->load->view('reset');
+    }
+
+    public function preregistration()
+    {
+        try {
+            $data['occupation'] = $this->Crud_modal->fetch_all_data('*', 'occupation', 'status= 1 AND looking_for_type=1', 'occupation_name ASC');
+            $data['intoccupation'] = $this->Crud_modal->fetch_all_data('*', 'occupation', 'status= 1 AND looking_for_type=2', 'occupation_name ASC');
+            $data['opportunity'] = $this->Crud_modal->fetch_all_data('*', 'opportunity', 'opportunity_status= 1', 'opportunity_name ASC');
+            $data['skills'] = $this->Crud_modal->fetch_all_data('*', 'skills', 'status= 1', 'skill_name ASC');
+            $data['countries'] = $this->Crud_modal->fetch_all_data('*', 'countries', 'status= 1', 'Name ASC');
+            $data['state'] = $this->Crud_modal->all_data_select('*', 'states', 'status=1 and state_id !=45', 'state_name ASC');
+            $data['taskType'] = $this->Crud_modal->fetch_all_data('*', 'task_type', 'status = 1');
+
+            $this->load->view('preregistration', $data);
+        } catch (Exception $e) {
+            echo 'Caught exception: ', $e->getMessage(), "\n";
+        }
+    }
+
+    public function insert_preregistration_data()
+    {
+        try {
+
+            $looking_for = $this->input->post('looking_for');
+            $name = ucfirst($this->input->post('first_name'));
+            $lname = ucfirst($this->input->post('last_name'));
+            $dob = date('Y-m-d', strtotime($this->input->post('dob')));
+            $gender = $this->input->post('gender');
+            $email = $this->input->post('email');
+            $mobile_number = $this->input->post('mobile_number');
+            $encoded_mob = rtrim(strtr(base64_encode($mobile_number), '+/', '-_'), '=');
+            $county = $this->input->post('county');
+            $state_id = $this->input->post('state_id');
+            $city_name = $this->input->post('city_name');
+            $occupation = $this->input->post('occupation');
+            $otheroccupation = $this->input->post('otheroccupation');
+            $volunteering_type = $this->input->post('volunteering_type');
+            $where_know_opportunity = $this->input->post('where_know_opportunity');
+
+            $other_opportunity = $this->input->post('other_opportunity');
+            $volunteerSkill = $this->input->post('skill_id');
+            $internskill_id = $this->input->post('skill_id');
+            $Uploade_file = $this->input->post('Uploade_file');
+            $mention_past = $this->input->post('mention_past');
+            $whatyou_aim = $this->input->post('whatyou_aim');
+            $internshipType = $this->input->post('internshipType');
+            $internshipDeruation = $this->input->post('internshipDeruation');
+
+
+            if ($looking_for == 'volunteering') {
+                $volunteerData = array(
+                    'first_name' => $name,
+                    'last_name' => $lname,
+                    'date_of_birth' => $dob,
+                    'gender' => $gender,
+                    'email' => $email,
+                    'mobile' => $mobile_number,
+                    'country_id' => $county,
+                    'state_id' => $state_id,
+                    'city_id ' => $city_name,
+                    'occupation_id' => $occupation,
+                    'vol_type_id' => $volunteering_type,
+                    'volunteer_skill' => implode(",", $volunteerSkill),
+                    'where_did_u_know' => $where_know_opportunity,
+                    'creation_date' => date('Y-m-d'),
+                    'status' => 1,
+                );
+
+                $volunteerDataresult = $this->Crud_modal->volunteer_data_insert('volunteer', $volunteerData);
+
+                if ($volunteerDataresult > 0) {
+
+                    $preregistrationConfirmmail = $this->send_preregistraion_conformaition_mail($volunteerData);
+
+                    if ($preregistrationConfirmmail) {
+                        // Email sent successfully
+                        redirect(base_url() . 'thank-you');
+                    } else {
+                        // Error sending email
+                        echo 'Error sending email.';
+                    }
+                } else {
+                    // Error inserting data
+                    echo 'Error inserting data.';
+                }
+
+                redirect(base_url() . 'thank-you');
+            } else {
+                $internData = array(
+                    'first_name' => $name,
+                    'last_name' => $lname,
+                    'date_of_birth' => $dob,
+                    'gender' => $gender,
+                    'email' => $email,
+                    'mobile' => $mobile_number,
+                    'country_id' => $county,
+                    'state_id' => $state_id,
+                    'city_id ' => $city_name,
+                    'occupation_id' => $occupation,
+                    'otheroccupation' => $otheroccupation,
+                    'skill_id' => implode(",", $internskill_id),
+                    'past_volunteering' => $mention_past,
+                    'internshipType' => $internshipType,
+                    'where_did_u_know' => $where_know_opportunity,
+                    'other_opportunity' => $other_opportunity,
+                    'internshipDeruation' => $internshipDeruation,
+                    'what_you_aim' => $whatyou_aim,
+                    'creation_date' => date('Y-m-d'),
+                    'status' => 1,
+                );
+                $config['upload_path'] = './uploads/';
+                $config['allowed_types'] = 'doc|docx|pdf';
+                $config['max_size'] = 15360; // 15 MB in kilobytes (1 MB = 1024 KB)
+                $new_name = time() . $_FILES["Uploade_file"]['name'];
+                $config['file_name'] = $new_name;
+                $this->load->library('upload', $config);
+                $this->upload->initialize($config);
+                if ($this->upload->do_upload('Uploade_file')) {
+                    $file = $this->upload->data();
+                    $internData['cv_file'] = $file['file_name'];
+                    $internDataresult = $this->Crud_modal->intern_data_insert('interns', $internData);
+                    if ($internDataresult > 0) {
+
+                        $preregistrationConfirmmail = $this->send_preregistraion_conformaition_mail($internData);
+                        if ($preregistrationConfirmmail) {
+                            redirect(base_url() . 'thank-you');
+                        } else {
+
+                            echo 'Error sending email.';
+                        }
+                    } else {
+
+                        echo 'Error inserting data.';
+                    }
+
+                    redirect(base_url() . 'thank-you');
+                } else {
+                    $error = array('error' => $this->upload->display_errors());
+                    print_r($error);
+                    exit;
+                    $error = 'Upload a file with a maximum size of 2MB.';
+                    echo '<script>alert("' . $error . '"); window.location.href = "' . base_url() . 'preregistration";</script>';
+                }
+            }
+        } catch (Exception $e) {
+            echo 'Caught exception: ', $e->getMessage(), "\n";
+        }
+    }
+
+    public function send_preregistraion_conformaition_mail($userData)
+    {
+
+        $data['first_name'] = $userData['first_name'];
+        $data['last_name'] = $userData['last_name'];
+        $emailBody = $this->load->view('admin/pre_registrationmail', $data, TRUE);
+
+        $to = $userData['email'];
+        $mail = new PHPMailer();
+        $mail->IsSMTP();
+        $mail->Host = 'smtp.office365.com';
+        $mail->SMTPDebug = 1;
+        $mail->SMTPAuth = true;
+        $mail->SMTPSecure = "tls";
+        $mail->Port = 587;
+        $mail->Username = "noreply@crymail.org";
+        $mail->Password = "^%n7wh#m7_2k";
+        $mail->setFrom('noreply@crymail.org');
+        $mail->AddAddress($to);
+        $mail->addBCC("mahendra.s@neuralinfo.org", "Ravi");
+        $mail->FromName = 'CRY VE Team';
+        $mail->IsHTML(true);
+        $mail->Subject = 'Application confirmation mail';
+        $mail->Body = $emailBody;
+
+        if (!$mail->Send()) {
+            echo "Message could not be sent. <p>";
+            echo "Mailer Error: " . $mail->ErrorInfo;
+        } else {
+            echo "Mailer Error: " . $mail->ErrorInfo;
+            redirect(base_url() . 'thank-you');
+        }
+    }
+
+    public function email_ajax_check()
+    {
+        $data['email_exsist'] = $this->LoginModel->email_exsist();
+
+        if ($data['email_exsist'] != 0) {
+            echo 1;
+        } else {
+            echo 0;
+        }
+    }
+
+    function get_states()
+    {
+        $stat = $this->input->post('country_id');
+        $internshipType = $this->input->post('internshipType');
+
+        if ($internshipType == 1) {
+            // Jab internshipType 1 ho to sirf country_id filter
+            $where = "states.country_id = '$stat'";
+        } else {
+            // Otherwise, country_id + offileIntership = 1 condition
+            $where = "states.country_id = '$stat' AND states.offlineInternship = 1";
+        }
+
+        // Order by state_name ascending
+        $state = $this->Crud_modal->all_data_select('*', 'states', $where, 'state_name ASC');
+
+        echo '<option value="">---Select State---</option>';
+        foreach ($state as $s) {
+            $state_id = $s['state_id'];
+            $state_nam = $s['state_name'];
+            echo '<option value="' . $state_id . '">' . rtrim($state_nam, ' ') . '</option>';
+        }
+    }
+    function get_city()
+    {
+
+        $stat = $this->input->post('state_id');
+        $internshipType = $this->input->post('internshipType');
+        if ($internshipType == 1) {
+            // Jab internshipType 1 ho to sirf country_id filter
+            $where = "cities.state_id = '$stat'";
+        } else {
+            // Otherwise, country_id + offileIntership = 1 condition
+            $where = "cities.state_id = '$stat' AND cities.intership_city = 1";
+        }
+
+        $citys = $this->Crud_modal->all_data_select('*', 'cities', $where, 'city_name ASC');
+        // print_r($citys);
+        echo '<option value="">---Select City---</option>';
+        foreach ($citys as $city) {
+            $city_id = $city['city_id'];
+            $city_nam = $city['city_name'];
+            echo '<option value="' . $city_id . '">' . rtrim($city_nam, ' ') . '</option>';
+        }
+    }
+
+
+
+    public function insertoccupationDetails()
+    {
+        try {
+            $volunteer_id = $this->input->post('volunteer_id');
+            $emergency_contact = $this->input->post('emergency_contact');
+            $occupation = $this->input->post('occupation');
+            $otherOccupation = $this->input->post('otherOccupation');
+            $name_of_school = $this->input->post('name_of_school');
+            $designation = $this->input->post('designation');
+            $language = $this->input->post('language');
+            $Otherlanguages = $this->input->post('otherlanguage');
+            $programsInterests = $this->input->post('programsInterests');
+            $otherprogramsInterests = $this->input->post('otherprogramsInterests');
+            $commitment = $this->input->post('commitment');
+            $knowaboutCRY = $this->input->post('where_know_opportunity');
+            $where_know_opportunityBox = $this->input->post('where_know_opportunityBox');
+            $signature = $this->input->post('signature');
+            $dateofSubmission = $this->input->post('dateofSubmission');
+            $occupationDetails = array(
+                //'other_contact' => $other_contact,
+                'emergency_contact' => $emergency_contact,
+                'occupation' => $occupation,
+                'otherOccupation' => $otherOccupation,
+                'name_of_school' => $name_of_school,
+                'designation' => $designation,
+                'language' => $language,
+                'Otherlanguages' => $Otherlanguages,
+                'programsInterests' => $programsInterests,
+                'communicated_cry' => $otherprogramsInterests,
+                'start_date_internship' => $commitment,
+                'profileofProject' => $knowaboutCRY,
+                'knowaboutCRY' => $where_know_opportunityBox,
+                'signature' => $signature,
+                'dateofSubmission' => $dateofSubmission,
+
+            );
+            // echo "<pre>";
+            // print_r($occupationDetails);
+            // exit;
+            $status = array(
+                'status' => 4,
+            );
+            $where = array(
+                'volunteer_id' => $volunteer_id,
+            );
+            $this->Curl_model->update_data('volunteer', $status, $where);
+            if ($this->Curl_model->update_data('volunteer_data', $occupationDetails, $where)) {
+                return 1;
+            } else {
+                return 1;
+            }
+        } catch (Exception $e) {
+            echo 'Caught exception: ', $e->getMessage(), "\n";
+        }
+    }
+
+
+    public function programVolunteer_insertoccupationDetails()
+    {
+        try {
+            $ProgramId = $this->input->post('ProgramId');
+            $emergency_contact = $this->input->post('emergency_contact');
+            $occupation = $this->input->post('occupation');
+            $otherOccupation = $this->input->post('otherOccupation');
+            $name_of_school = $this->input->post('name_of_school');
+            $designation = $this->input->post('designation');
+            $language = $this->input->post('language');
+            $Otherlanguages = $this->input->post('otherlanguage');
+            $programsInterests = $this->input->post('programsInterests');
+            $otherprogramsInterests = $this->input->post('otherprogramsInterests');
+            $commitment = $this->input->post('commitment');
+            $knowaboutCRY = $this->input->post('where_know_opportunity');
+            $where_know_opportunityBox = $this->input->post('where_know_opportunityBox');
+            $signature = $this->input->post('signature');
+            $dateofSubmission = $this->input->post('dateofSubmission');
+            $occupationDetails = array(
+                'emergency_contact' => $emergency_contact,
+                'occupation' => $occupation,
+                'otherOccupation' => $otherOccupation,
+                'name_of_school' => $name_of_school,
+                'designation' => $designation,
+                'language' => $language,
+                'Otherlanguages' => $Otherlanguages,
+                'programsInterests' => $programsInterests,
+                'communicated_cry' => $otherprogramsInterests,
+                'start_date_internship' => $commitment,
+                'profileofProject' => $knowaboutCRY,
+                'knowaboutCRY' => $where_know_opportunityBox,
+                'signature' => $signature,
+                'dateofSubmission' => $dateofSubmission,
+
+            );
+            $status = array(
+                'status' => 1,
+            );
+            $where = array(
+                'id' => $ProgramId,
+            );
+            $this->Curl_model->update_data('volunteer_program_users', $status, $where);
+            if ($this->Curl_model->update_data('program_volunteer_data', $occupationDetails, $where)) {
+                return 1;
+            } else {
+                return 1;
+            }
+        } catch (Exception $e) {
+            echo 'Caught exception: ', $e->getMessage(), "\n";
+        }
+    }
+
+    public function program_volunteerbasicData()
+    {
+        try {
+            $ProgramId = $this->input->post('ProgramId');
+            $first_name = $this->input->post('first_name');
+            $last_name = $this->input->post('last_name');
+            $email = $this->input->post('email');
+            $mobile_number = $this->input->post('mobile_number');
+            $age = $this->input->post('age');
+            $gender = $this->input->post('gender');
+            $country = $this->input->post('country');
+            $state_id = $this->input->post('state_id');
+            $city_name = $this->input->post('city_name');
+            $volunteer_programs = $this->input->post('volunteer_programs');
+            $occupation = $this->input->post('occupation');
+            $present_address = $this->input->post('present_address');
+            $basicData1 = array(
+                //'id' => $first_name,
+                'first_name' => $first_name,
+                'last_name' => $last_name,
+                'age' => $age,
+                'gender' => $gender,
+                'email' => $email,
+                'mobile' => $mobile_number,
+                'country_id' => $country,
+                'state_id' => $state_id,
+                'city_id' => $city_name,
+                'volunteer_programs' => $volunteer_programs,
+                'occupation_id' => $occupation,
+                'present_address' => $present_address,
+                'creation_date' => date('Y-m-d'),
+            );
+
+            $programVolunteerid = $this->Crud_modal->program_volunteer_insert('volunteer_program_users', $basicData1);
+            echo $encoded_id = rtrim(strtr(base64_encode($programVolunteerid), '+/', '-_'), '=');
+        } catch (Exception $e) {
+            echo 'Caught exception: ', $e->getMessage(), "\n";
+        }
+    }
+
+    public function insertBasicdata()
+    {
+        try {
+            $volunteer_id = $this->input->post('volunteer_id');
+            $firstName = $this->input->post('firstName');
+            $lastName = $this->input->post('lastName');
+            $email = $this->input->post('email');
+            $mobile = $this->input->post('mobile');
+            $dob = $this->input->post('dob');
+            //  $age = $this->input->post('age');
+            $gender = $this->input->post('gender');
+            $present_address = $this->input->post('present_address');
+            $permanent_address = $this->input->post('permanent_address');
+            $cityResindence = $this->input->post('cityResindence');
+            $basicData1 = array(
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'email' => $email,
+                'mobile' => $mobile,
+                'date_of_birth' => $dob,
+                //  'age' => $age,
+                'gender' => $gender,
+            );
+            $basicData2 = array(
+                'present_address' => $present_address,
+                'permanent_address' => $permanent_address,
+                'cityResindence' => $cityResindence,
+            );
+            $where = array(
+                'volunteer_id' => $volunteer_id,
+            );
+            // print_r($where);exit;
+            $this->Curl_model->update_data('volunteer', $basicData1, $where);
+            $this->Curl_model->update_data('volunteer_data', $basicData2, $where);
+        } catch (Exception $e) {
+            echo 'Caught exception: ', $e->getMessage(), "\n";
+        }
+    }
+
+    public function intern_insertBasicdata()
+    {
+        try {
+            $intern_id = $this->input->post('intern_id');
+            $firstName = $this->input->post('firstName');
+            $lastName = $this->input->post('lastName');
+            $email = $this->input->post('email');
+            $mobile = $this->input->post('mobile');
+            $dob = $this->input->post('dob');
+            //  $age = $this->input->post('age');
+            $gender = $this->input->post('gender');
+            $present_address = $this->input->post('present_address');
+            $permanent_address = $this->input->post('permanent_address');
+            $cityResindence = $this->input->post('cityResindence');
+            $basicData1 = array(
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'email' => $email,
+                'mobile' => $mobile,
+                'date_of_birth' => $dob,
+                //'age' => $age,
+                'gender' => $gender,
+            );
+            $basicData2 = array(
+                'present_address' => $present_address,
+                'permanent_address' => $permanent_address,
+                'cityResindence' => $cityResindence,
+            );
+            // echo "<pre>";
+            // print_r($basicData2);exit;
+            $where = array(
+                'intern_id' => $intern_id,
+            );
+            // print_r($where);exit;
+            $this->Curl_model->update_data('interns', $basicData1, $where);
+            $this->Curl_model->update_data('interns_data', $basicData2, $where);
+        } catch (Exception $e) {
+            echo 'Caught exception: ', $e->getMessage(), "\n";
+        }
+    }
+
+    public function volunteer_insertBasicdata()
+    {
+        try {
+            $volunteer_id = $this->input->post('volunteer_id');
+            $firstName = $this->input->post('firstName');
+            $lastName = $this->input->post('lastName');
+            $email = $this->input->post('email');
+            $mobile = $this->input->post('mobile');
+            $dob = $this->input->post('dob');
+            //  $age = $this->input->post('age');
+            $gender = $this->input->post('gender');
+            $present_address = $this->input->post('present_address');
+            $permanent_address = $this->input->post('permanent_address');
+            $cityResindence = $this->input->post('cityResindence');
+            $basicData1 = array(
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'email' => $email,
+                'mobile' => $mobile,
+                'date_of_birth' => $dob,
+                //'age' => $age,
+                'gender' => $gender,
+            );
+            $basicData2 = array(
+                'present_address' => $present_address,
+                'permanent_address' => $permanent_address,
+                'cityResindence' => $cityResindence,
+            );
+            $where = array(
+                'volunteer_id' => $volunteer_id,
+            );
+            // print_r($where);exit;
+            $this->Curl_model->update_data('volunteer', $basicData1, $where);
+            $this->Curl_model->update_data('volunteer_data', $basicData2, $where);
+        } catch (Exception $e) {
+            echo 'Caught exception: ', $e->getMessage(), "\n";
+        }
+    }
+
+    public function post_registration_intern()
+    {
+        try {
+
+            $intern_id = $this->uri->segment(2);
+            $val = base64_decode(str_pad(strtr($intern_id, '-_', '+/'), strlen($intern_id) % 4, '=', STR_PAD_RIGHT));
+
+            $where = "intern_id = '$val'";
+            $data['allinternData'] = $this->LoginModel->allDataintern($val);
+            $data['state'] = $this->Crud_modal->fetch_all_data('*', 'states', 'status=1');
+            $data['cities'] = $this->Crud_modal->fetch_all_data('*', 'cities', 'status=1');
+            $data['regions'] = $this->Crud_modal->fetch_all_data('*', 'regions', 'region_status=1');
+            $data['cry_language_master'] = $this->Crud_modal->fetch_all_data('*', 'cry_language_master', 'status=1');
+            $data['occupation'] = $this->Crud_modal->fetch_all_data('*', 'occupation', 'status= 1', 'occupation_name ASC');
+            $data['opportunity'] = $this->Crud_modal->fetch_all_data('*', 'opportunity', 'opportunity_status= 1', 'opportunity_name ASC');
+            $this->load->view('post-registration-intern', $data);
+        } catch (Exception $e) {
+            echo 'Caught exception: ', $e->getMessage(), "\n";
+        }
+    }
+
+    public function post_registration_volunteer()
+    {
+        try {
+
+            $volunteer_id = $this->uri->segment(2);
+            $val = base64_decode(str_pad(strtr($volunteer_id, '-_', '+/'), strlen($volunteer_id) % 4, '=', STR_PAD_RIGHT));
+            $where = "volunteer_id = '$val'";
+            $data['allvolunteersData'] = $this->LoginModel->allDatavolunteers($val);
+            $data['state'] = $this->Crud_modal->fetch_all_data('*', 'states', 'status=1');
+            $data['cities'] = $this->Crud_modal->fetch_all_data('*', 'cities', 'status=1');
+            $data['regions'] = $this->Crud_modal->fetch_all_data('*', 'regions', 'region_status=1');
+            $data['cry_language_master'] = $this->Crud_modal->fetch_all_data('*', 'cry_language_master', 'status=1');
+            $data['occupation'] = $this->Crud_modal->fetch_all_data('*', 'occupation', 'status= 1', 'occupation_name ASC');
+            $data['opportunity'] = $this->Crud_modal->fetch_all_data('*', 'opportunity', 'opportunity_status= 1', 'opportunity_name ASC');
+            $this->load->view('post-registration-volunteer', $data);
+        } catch (Exception $e) {
+            echo 'Caught exception: ', $e->getMessage(), "\n";
+        }
+    }
+
+    public function secondinsertBasicdata()
+    {
+        $volunteer_id = $this->input->post('volunteer_id');
+
+        if ($_FILES['id_proof_attach'] != "") {
+            $config['upload_path'] = './uploads/id_proof';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            // $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["id_proof_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('id_proof_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors('', '');
+            } else {
+                $file = $this->upload->data();
+                $id_proof_attachvol['id_proof_attach'] = $file['file_name'];
+                $where = array(
+                    'volunteer_id' => $volunteer_id,
+                );
+                $this->Curl_model->update_data('volunteer_data', $id_proof_attachvol, $where);
+            }
+            echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+        if ($_FILES['add_proof_attach'] != "") {
+            $config['upload_path'] = './uploads/address_proof';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            // $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["add_proof_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('add_proof_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors();
+                exit;
+            } else {
+                $file = $this->upload->data();
+                $add_proof_attachvol['add_proof_attach'] = $file['file_name'];
+                $where = array(
+                    'volunteer_id' => $volunteer_id,
+                );
+                $this->Curl_model->update_data('volunteer_data', $add_proof_attachvol, $where);
+            }
+            echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+        if ($_FILES['letter_parents_attach'] != "") {
+            $config['upload_path'] = './uploads/reference_letter';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            // $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["letter_parents_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('letter_parents_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors();
+                exit;
+            } else {
+                $file = $this->upload->data();
+                $letter_parents_attachvol['letter_parents_attach'] = $file['file_name'];
+                $where = array(
+                    'volunteer_id' => $volunteer_id,
+                );
+                $this->Curl_model->update_data('volunteer_data', $letter_parents_attachvol, $where);
+            }
+            echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+        if ($_FILES['close_up_photo'] != "") {
+            $config['upload_path'] = './uploads/closeup_photo';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            // $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["close_up_photo"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('close_up_photo')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors();
+                exit;
+            } else {
+                $file = $this->upload->data();
+                $close_up_photovol['close_up_photo'] = $file['file_name'];
+                $where = array(
+                    'volunteer_id' => $volunteer_id,
+                );
+                $this->Curl_model->update_data('volunteer_data', $close_up_photovol, $where);
+            }
+            echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+        if ($_FILES['cv_attach'] != "") {
+            $config['upload_path'] = './uploads/cv';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            // $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["cv_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('cv_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors();
+                exit;
+            } else {
+                $file = $this->upload->data();
+                $cv_attachvol['cv_attach'] = $file['file_name'];
+                $where = array(
+                    'volunteer_id' => $volunteer_id,
+                );
+                $this->Curl_model->update_data('volunteer_data', $cv_attachvol, $where);
+            }
+            echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+        if ($_FILES['ref_attach'] != "") {
+            $config['upload_path'] = './uploads/reference_letter';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            // $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["ref_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('ref_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors();
+                exit;
+            } else {
+                $file = $this->upload->data();
+                $ref_attachvol['ref_attach'] = $file['file_name'];
+                $where = array(
+                    'volunteer_id' => $volunteer_id,
+                );
+                $this->Curl_model->update_data('volunteer_data', $ref_attachvol, $where);
+            }
+            echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+    }
+
+    public function program_volunteersecondinsertBasicdata()
+    {
+        $program_id = $this->input->post('ProgramId');
+        if ($_FILES['id_proof_attach'] != "") {
+            $config['upload_path'] = './programs_data/id';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            // $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["id_proof_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('id_proof_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors('', '');
+            } else {
+                $file = $this->upload->data();
+                $id_proof_attachvol['id_proof_attach'] = $file['file_name'];
+                $where = array(
+                    'id' => $program_id,
+                );
+                $this->Curl_model->update_data('program_volunteer_data', $id_proof_attachvol, $where);
+            }
+            echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+        if ($_FILES['add_proof_attach'] != "") {
+            $config['upload_path'] = './programs_data/address_p';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            // $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["add_proof_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('add_proof_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors();
+                exit;
+            } else {
+                $file = $this->upload->data();
+                $add_proof_attachvol['add_proof_attach'] = $file['file_name'];
+                $where = array(
+                    'id' => $program_id,
+                );
+                $this->Curl_model->update_data('program_volunteer_data', $add_proof_attachvol, $where);
+            }
+            echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+        if ($_FILES['letter_parents_attach'] != "") {
+            $config['upload_path'] = './programs_data/referenceLetter';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            // $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["letter_parents_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('letter_parents_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors();
+                exit;
+            } else {
+                $file = $this->upload->data();
+                $letter_parents_attachvol['letter_parents_attach'] = $file['file_name'];
+                $where = array(
+                    'id' => $program_id,
+                );
+                $this->Curl_model->update_data('program_volunteer_data', $letter_parents_attachvol, $where);
+            }
+            echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+        if ($_FILES['close_up_photo'] != "") {
+            $config['upload_path'] = './programs_data/closePic';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            // $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["close_up_photo"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('close_up_photo')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors();
+                exit;
+            } else {
+                $file = $this->upload->data();
+                $close_up_photovol['close_up_photo'] = $file['file_name'];
+                $where = array(
+                    'id' => $program_id,
+                );
+                $this->Curl_model->update_data('program_volunteer_data', $close_up_photovol, $where);
+            }
+            echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+        if ($_FILES['cv_attach'] != "") {
+            $config['upload_path'] = './programs_data/cvvv';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            // $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["cv_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('cv_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors();
+                exit;
+            } else {
+                $file = $this->upload->data();
+                $cv_attachvol['cv_attach'] = $file['file_name'];
+                $where = array(
+                    'id' => $program_id,
+                );
+                $this->Curl_model->update_data('program_volunteer_data', $cv_attachvol, $where);
+            }
+            echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+        if ($_FILES['ref_attach'] != "") {
+            $config['upload_path'] = './programs_data/referenceLetter';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            // $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["ref_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('ref_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors();
+                exit;
+            } else {
+                $file = $this->upload->data();
+                $ref_attachvol['ref_attach'] = $file['file_name'];
+                $where = array(
+                    'id' => $program_id,
+                );
+                $this->Curl_model->update_data('program_volunteer_data', $ref_attachvol, $where);
+            }
+            echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+    }
+
+    public function employee_email_ajax_Check()
+    {
+        $data['email_exsist'] = $this->LoginModel->employee_email_exsist();
+
+        if ($data['email_exsist'] != 0) {
+            echo 1;
+        } else {
+            echo 0;
+        }
+    }
+
+    public function create_emailOtp()
+    {
+        $email = $this->input->post('VOLUNTEEREMAIL');
+        $length = 4;
+        $to = $email;
+        $keys = array_merge(range(0, 9), range(0, 9));
+        $key = "";
+        for ($i = 0; $i < $length; $i++) {
+            $key .= $keys[mt_rand(0, count($keys) - 1)];
+        }
+
+        echo $this->preregistration_sendMail($key, $to);
+    }
+
+    public function preregistration_sendMail($otp, $to)
+    {
+        $mail = new PHPMailer();
+        $mail->IsSMTP();
+        $mail->Host = 'smtp.office365.com';
+        $mail->SMTPDebug = 1;
+        $mail->SMTPAuth = true;
+        $mail->SMTPSecure = "tls";
+        $mail->Port = 587;
+        $mail->Username = "noreply@crymail.org";
+        $mail->Password = "^%n7wh#m7_2k";
+        $mail->setFrom('noreply@crymail.org');
+        $mail->AddAddress($to);
+        $mail->addBCC("mahendra.s@neuralinfo.org", "Mahendra sahu");
+
+        $mail->FromName = 'CRY VE Team';
+        $mail->IsHTML(true);
+        $mail->Subject = 'OTP From CRY';
+        $html = '<div style="margin:0;padding:0" bgcolor="#FFFFFF">
+        <table style="min-width:348px" width="100%" lang="en" height="100%" cellspacing="0" cellpadding="0" border="0">
+
+            <tbody>
+
+                <tr style="height:32px" height="32">
+
+                    <td>
+
+                    </td>
+
+                </tr>
+
+                <tr align="center">
+
+                    <td>
+
+                        <div>
+
+                            <div>
+
+                            </div>
+
+                        </div>
+
+                        <table style="padding-bottom:20px;max-width:516px;min-width:220px" cellspacing="0" cellpadding="0" border="0">
+
+                            <tbody>
+
+                                <tr>
+
+                                    <td style="width:8px" width="8">
+
+                                    </td>
+
+                                    <td>
+
+                                        <div style="border-style:solid;border-width:thin;border-color:#dadce0;border-radius:8px;padding:40px 20px" class="m_-3835115663774870952mdv2rw" align="center">
+
+                                        <img src="users/assets/images/brand/ezgif.com-gif-maker.gif" style="border-radius: 10px;" class="" alt="">
+
+                                            <div style="border-bottom:thin solid #dadce0;color:rgba(0,0,0,0.87);line-height:32px;padding-bottom:24px;text-align:center;word-break:break-word">
+
+                                            <div style="font-size:18px">
+
+                                                ' . 'OTP for CRY ' . '
+
+                                            </div>
+
+                                                
+
+                                            </div>
+
+                                            <div style="font-family:Roboto-Regular,Helvetica,Arial,sans-serif;font-size:14px;color:rgba(0,0,0,0.87);line-height:20px;padding-top:20px;text-align:center">
+
+                                            <div style="padding-top:32px;text-align:center">
+
+                                            <a href="" 
+
+                                            style="line-height:16px;color:#0a0909;font-weight:400;text-decoration:none;font-size:14px;display:inline-block;padding:10px 24px;background-color:#ffd942;border-radius:5px;min-width:90px" 
+
+                                            target="_blank" 
+
+                                            data-saferedirecturl="">
+
+                                            ' . $otp . '  </a>
+
+                                            </div>
+
+                                            </div>
+
+                                        </div>
+
+                                        
+
+                                    </td>
+
+                                    <td style="width:8px" width="8">
+
+                                    </td>
+
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </td>
+
+                </tr>
+
+                <tr style="height:32px" height="32">
+
+                    <td>
+
+                    </td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+        </div>';
+
+        //  return $html;
+        //die();
+        $mail->Body = $html;
+        if (!$mail->Send()) {
+            echo "Message could not be sent. <p>";
+            echo "Mailer Error: " . $mail->ErrorInfo;
+        } else {
+
+            return $otp;
+        }
+    }
+
+
+    public function volunteer_programs()
+    {
+        try {
+            $programId = $this->uri->segment(2);
+            $val = base64_decode(str_pad(strtr($programId, '-_', '+/'), strlen($programId) % 4, '=', STR_PAD_RIGHT));
+            $where = "program_id = '$val'";
+            $data['program'] = $this->LoginModel->get_all_program($val);
+            // echo "<pre>";
+            // print_r($data['program']);exit;
+            $data['allvolunteersData'] = $this->LoginModel->allDatavolunteers($val);
+            $data['occupation'] = $this->Crud_modal->fetch_all_data('*', 'occupation', 'status= 1', 'occupation_name ASC');
+            $data['volunteer_programs'] = $this->Crud_modal->fetch_all_data('*', 'program_volunteer', 'status= 1', 'occupation_name ASC');
+            $data['volunteer_programs_user'] = $this->Crud_modal->fetch_all_data('*', 'volunteer_program_users', 'status= 1');
+            $data['opportunity'] = $this->Crud_modal->fetch_all_data('*', 'opportunity', 'opportunity_status= 1', 'opportunity_name ASC');
+            $data['skills'] = $this->Crud_modal->fetch_all_data('*', 'skills', 'status= 1', 'skill_name ASC');
+            $data['countries'] = $this->Crud_modal->fetch_all_data('*', 'countries', 'status= 1', 'Name ASC');
+            $data['state'] = $this->Crud_modal->all_data_select('*', 'states', 'status=1 and state_id !=45', 'state_name ASC');
+            $this->load->view('volunteer-programs', $data);
+        } catch (Exception $e) {
+            echo 'Caught exception: ', $e->getMessage(), "\n";
+        }
+    }
+
+    public function volunteer_programs_email_ajax_check()
+    {
+        $data['email_exsist'] = $this->LoginModel->volunteer_programs_email_exsist();
+
+        if ($data['email_exsist'] != 0) {
+            echo 1;
+        } else {
+            echo 0;
+        }
+    }
+
+    public function volunteer_programsCreatemailotp()
+    {
+        $email = $this->input->post('PROGRAME');
+        $length = 4;
+        $to = $email;
+        $keys = array_merge(range(0, 9), range(0, 9));
+        // print_r($keys);exit;
+        $key = "";
+        for ($i = 0; $i < $length; $i++) {
+            $key .= $keys[mt_rand(0, count($keys) - 1)];
+        }
+
+        echo $this->volunteer_programspre_registration_sendMail($key, $to);
+    }
+
+
+    public function volunteer_programspre_registration_sendMail($otp, $to)
+    {
+        $mail = new PHPMailer();
+        $mail->IsSMTP();
+        $mail->Host = 'smtp.office365.com';
+        $mail->SMTPDebug = 1;
+        $mail->SMTPAuth = true;
+        $mail->SMTPSecure = "tls";
+        $mail->Port = 587;
+        $mail->Username = "noreply@crymail.org";
+        $mail->Password = "^%n7wh#m7_2k";
+        $mail->setFrom('noreply@crymail.org');
+        $mail->AddAddress($to);
+        $mail->addBCC("ravishankar.k@neuralinfo.org", "Ravi");
+        $mail->FromName = 'cry Vms';
+        $mail->IsHTML(true);
+        $mail->Subject = 'OTP From CRY  ';
+        $mail->Body = 'Hello User Your One Time Password Is' . ' ' . $otp;
+        if (!$mail->Send()) {
+            echo "Message could not be sent. <p>";
+            echo "Mailer Error: " . $mail->ErrorInfo;
+        } else {
+
+            return $otp;
+        }
+    }
+
+    public function validate_age($age)
+    {
+        $dob = new DateTime($age);
+        $now = new DateTime();
+        return ($now->diff($dob)->y > 18) ? 'yes' : 'no';
+    }
+
+    public function inquiry()
+    {
+        if ($this->input->post()) {
+            $name = ucwords($this->input->post('name'));
+            $email = $this->input->post('email');
+            $message = ucwords($this->input->post('message'));
+            $captcha = $this->input->post('captcha');
+            $rcaptcha = $this->input->post('rcaptcha');
+            $admin_data = $this->Curl_model->fetch_data('users', array('email'), array('roleID' => 1), 1, array('userID', 'ASC'));
+            $href = base_url() . 'login';
+            $to = $admin_data['email'];
+            $from = 'volunteer@caritasindia.org';
+            $msg = 'Caritas India Volunteer';
+            $msg2 = "
+            <center><p><strong style='font-weight:bold;'>Inquiry details is given below</strong></p></center>
+            <table style='border:1px solid #8f281f;border-top:0px solid #8f281f !important;border-spacing: 0px;width:100%;'>
+                <tr>
+                    <th style='border-top:1px solid #8f281f !important;padding:10px 20px ;text-align:left;'>Name</th>
+                    <td style='border-top:1px solid #8f281f !important;border-left:1px solid #8f281f !important;padding:10px 20px ;text-align:left;'>" . $name . "</td>
+                </tr>
+                <tr>
+                    <th style='border-top:1px solid #8f281f !important;padding:10px 20px ;text-align:left;'>Email</th>
+                    <td style='border-top:1px solid #8f281f !important;border-left:1px solid #8f281f !important;padding:10px 20px ;text-align:left;'>" . $email . "</td>
+                </tr>
+                <tr>
+                    <th style='border-top:1px solid #8f281f !important;padding:10px 20px ;text-align:left;'>Message</th>
+                    <td style='border-top:1px solid #8f281f !important;border-left:1px solid #8f281f !important;padding:10px 20px ;text-align:left;'>" . $message . "</td>
+                </tr>
+            </table>";
+            //die();
+            $subj = "Inquiry for Caritas Indias";
+            $btn = "Check Now!";
+
+            $html = $this->request_email_without_btn($msg, $msg2);
+            if ($captcha === $rcaptcha) {
+                $res = $this->mail_send($to, $from, $msg, $msg2, $subj, $href, $btn, $html);
+                $this->session->set_flashdata('sendmsg', 'We will contact you soon.');
+            } else {
+                $this->session->set_flashdata('sendmsg', 'Opps! Somthing Wrong');
+            }
+        }
+        echo '<script>window.location.href = "' . base_url() . '"</script>';
+    }
+
+    public function mail_send($to, $from, $msg, $msg2, $subj, $link, $btn, $html)
+    {
+        $mail = new PHPMailer();
+        $mail->IsSMTP();
+        $mail->Host = 'smtp.office365.com';
+        $mail->SMTPDebug = 1;
+        $mail->SMTPAuth = true;
+        $mail->SMTPSecure = "tls";
+        $mail->Port = 587;
+        $mail->Username = "noreply@crymail.org";
+        $mail->Password = "^%n7wh#m7_2k";
+        $mail->setFrom($from);
+        $mail->AddAddress($to);
+        $mail->addBCC("ravishankar.k@neuralinfo.org", "Ravi");
+        $mail->FromName = $msg;
+        $mail->IsHTML(true);
+        $mail->Subject = $subj;
+        $mail->Body = $html;
+        if (!$mail->Send()) {
+            echo "Message could not be sent. <p>";
+            echo "Mailer Error: " . $mail->ErrorInfo;
+        }
+        //return true;
+    }
+
+    public function request_email($msg, $msg2, $link, $btn)
+    {
+        $html = '<div style="margin:0;padding:0" bgcolor="#FFFFFF">
+
+        <table style="min-width:348px" width="100%" lang="en" height="100%" cellspacing="0" cellpadding="0" border="0">
+            <tbody>
+                <tr style="height:32px" height="32">
+                    <td>
+                    </td>
+                </tr>
+                <tr align="center">
+                    <td>
+                        <div>
+                            <div>
+                            </div>
+                        </div>
+                        <table style="padding-bottom:20px;max-width:516px;min-width:220px" cellspacing="0" cellpadding="0" border="0">
+                            <tbody>
+                                <tr>
+                                    <td style="width:8px" width="8">
+                                    </td>
+                                    <td>
+                                        <div style="border-style:solid;border-width:thin;border-color:#dadce0;border-radius:8px;padding:40px 20px" class="m_-3835115663774870952mdv2rw" align="center">
+                                            <img src="https://www.caritasindia.org/wp-content/uploads/2019/09/Caritas-India-Logo.png"
+                                             aria-hidden="true" style="margin-bottom:16px" alt="caritas india" class="" width="150" height="70">
+                                            <div style="border-bottom:thin solid #dadce0;color:rgba(0,0,0,0.87);line-height:32px;padding-bottom:24px;text-align:center;word-break:break-word">
+                                            <div style="font-size:24px">
+                                                ' . $msg . '
+                                            </div>
+                                                
+                                            </div>
+                                            <div style="font-family:Roboto-Regular,Helvetica,Arial,sans-serif;font-size:14px;color:rgba(0,0,0,0.87);line-height:20px;padding-top:20px;text-align:center">
+                                            ' . $msg2 . '<div style="padding-top:32px;text-align:center">
+                                            <a href="' . $link . '" 
+                                            style="line-height:16px;color:#ffffff;font-weight:400;text-decoration:none;font-size:14px;display:inline-block;padding:10px 24px;background-color:#8e2c24;border-radius:5px;min-width:90px" 
+                                            target="_blank" 
+                                            data-saferedirecturl="' . $link . '">
+                                            ' . $btn . '</a>
+                                            </div>
+                                            </div>
+                                        </div>
+                                        <div style="text-align:left">
+                                            <div style="font-family:Roboto-Regular,Helvetica,Arial,sans-serif;color:rgba(0,0,0,0.54);font-size:11px;line-height:18px;padding-top:12px;text-align:center">
+                                            <div>
+                                                Caritas India Headquarter:
+                                                Caritas India, CBCI Centre, Ashok Place, Opposite to Goledakkhana,
+                                                New Delhi - 11 00 01, India</div>
+                                            <div style="direction:ltr">
+                                                Tel - 91 -11 - 2336 3390 / 2374 23 39, <a class="m_-3835115663774870952afal" style="font-family:Roboto-Regular,Helvetica,Arial,sans-serif;color:rgba(0,0,0,0.54);font-size:11px;line-height:18px;padding-top:12px;text-align:center">
+                                                    Email - volunteer@caritasindia.org</a>
+                                            </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td style="width:8px" width="8">
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                <tr style="height:32px" height="32">
+                    <td>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        </div>';
+        return $html;
+    }
+
+    public function request_email_without_btn($msg, $msg2)
+    {
+        $html = '<div style="margin:0;padding:0" bgcolor="#FFFFFF">
+
+        <table style="min-width:348px" width="100%" lang="en" height="100%" cellspacing="0" cellpadding="0" border="0">
+            <tbody>
+                <tr style="height:32px" height="32">
+                    <td>
+                    </td>
+                </tr>
+                <tr align="center">
+                    <td>
+                        <div>
+                            <div>
+                            </div>
+                        </div>
+                        <table style="padding-bottom:20px;max-width:516px;min-width:220px" cellspacing="0" cellpadding="0" border="0">
+                            <tbody>
+                                <tr>
+                                    <td style="width:8px" width="8">
+                                    </td>
+                                    <td>
+                                        <div style="border-style:solid;border-width:thin;border-color:#dadce0;border-radius:8px;padding:40px 20px" class="m_-3835115663774870952mdv2rw" align="center">
+                                            <img src="https://www.caritasindia.org/wp-content/uploads/2019/09/Caritas-India-Logo.png"
+                                             aria-hidden="true" style="margin-bottom:16px" alt="caritas india" class="" width="150" height="70">
+                                            <div style="border-bottom:thin solid #dadce0;color:rgba(0,0,0,0.87);line-height:32px;padding-bottom:24px;text-align:center;word-break:break-word">
+                                            <div style="font-size:24px">
+                                                ' . $msg . '
+                                            </div>
+                                                
+                                            </div>
+                                            <div style="font-family:Roboto-Regular,Helvetica,Arial,sans-serif;font-size:14px;color:rgba(0,0,0,0.87);line-height:20px;padding-top:20px;text-align:center">
+                                            ' . $msg2 . '<div style="padding-top:32px;text-align:center">
+                                            </div>
+                                            </div>
+                                        </div>
+                                        <div style="text-align:left">
+                                            <div style="font-family:Roboto-Regular,Helvetica,Arial,sans-serif;color:rgba(0,0,0,0.54);font-size:11px;line-height:18px;padding-top:12px;text-align:center">
+                                            <div>
+                                                Caritas India Headquarter:
+                                                Caritas India, CBCI Centre, Ashok Place, Opposite to Goledakkhana,
+                                                New Delhi - 11 00 01, India</div>
+                                            <div style="direction:ltr">
+                                                Tel - 91 -11 - 2336 3390 / 2374 23 39, <a class="m_-3835115663774870952afal" style="font-family:Roboto-Regular,Helvetica,Arial,sans-serif;color:rgba(0,0,0,0.54);font-size:11px;line-height:18px;padding-top:12px;text-align:center">
+                                                    Email - volunteer@caritasindia.org</a>
+                                            </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td style="width:8px" width="8">
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                <tr style="height:32px" height="32">
+                    <td>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        </div>';
+        return $html;
+    }
+
+    public function verify()
+    {
+        $link = $this->uri->segment(2);
+        $link2 = $this->uri->segment(3);
+        $userID = base64_decode(str_pad(strtr($link, '-_', '+/'), strlen($link) % 4, '=', STR_PAD_RIGHT));
+        $email = base64_decode(str_pad(strtr($link2, '-_', '+/'), strlen($link2) % 4, '=', STR_PAD_RIGHT));
+        $where = array(
+            'userID' => $userID,
+            'email' => $email,
+        );
+        $fields = array(
+            'mailConfrmationStatus' => 1,
+            'verify' => 1
+        );
+        $results = $this->Curl_model->update_data('users', $fields, $where);
+        $this->load->view('verified');
+    }
+
+    public function all_state()
+    {
+        echo '<option value="">Select State</option>';
+        $taskID = $this->input->post('taskID');
+        if ($this->input->post('taskID') != 0) {
+
+            $tempcities = $this->LoginModel->select_all_states_by_task($taskID);
+            foreach ($tempcities as $key => $value) {
+                echo '<option class="sv_' . $value['state_id'] . '" value="' . $value['state_id'] . '">' . ucwords($value['state_name']) . '</option>';
+            }
+        }
+    }
+
+    public function all_cities()
+    {
+        echo '<option value="">Select City</option>';
+        $stateID = $this->input->post('stateId');
+
+        if ($this->input->post('stateId') != 0) {
+
+            $tempcities = $this->LoginModel->select_all_city_by_task($stateID);
+            //print_r($tempcities);exit;
+            foreach ($tempcities as $key => $value) {
+
+                echo '<option class="cv_' . $value['city_id'] . '" value="' . $value['city_id'] . '">' . ucwords($value['city_name']) . '</option>';
+            }
+        }
+    }
+
+    public function all_city()
+    {
+        echo '<option value="">Select City</option>';
+        $stateID = $this->input->post('stateId');
+        if ($this->input->post('stateId') != 0) {
+            $fields3 = array(
+                'cityID',
+                'cityName',
+            );
+            $where3 = array(
+                'stateID' => $stateID
+            );
+            $limit3 = '';
+            //$order_by = array('userID','DESC');
+            $order_by3 = "";
+            $tempcities = $this->Curl_model->fetch_data_in_many_array('cities', $fields3, $where3, $limit3, $order_by3);
+
+            foreach ($tempcities as $key => $value) {
+
+                echo '<option class="cv_' . $value['cityID'] . '" value="' . $value['cityID'] . '">' . ucwords($value['cityName']) . '</option>';
+            }
+        }
+    }
+
+    public function fetch_city()
+    {
+        $stateID = $this->input->post('stateId');
+        if ($this->input->post('stateId') != 0) {
+            $fields3 = array(
+                'cityID',
+                'cityName',
+            );
+            $where3 = array(
+                'stateID' => $stateID
+            );
+            $limit3 = '';
+            //$order_by = array('userID','DESC');
+            $order_by3 = "";
+            $tempcities = $this->Curl_model->fetch_data_in_many_array('cities', $fields3, $where3, $limit3, $order_by3);
+
+            foreach ($tempcities as $key => $value) {
+
+                echo '<option class="cv_' . $value['cityID'] . '" value="' . $value['cityID'] . '">' . ucwords($value['cityName']) . '</option>';
+            }
+        }
+    }
+
+
+
+
+    public function all_valunteers()
+    {
+        $taskType = $this->input->post('taskType');
+        $taskID = $this->input->post('taskName');
+        $cityID = $this->input->post('stateName');
+        if ($this->input->post('stateName') != 0) {
+            $internDetails = $this->LoginModel->assign_task_volunteer($cityID, $taskID);
+            ?>
+            <div id="tb<?php echo $cityID; ?>">
+                <table class="table table-bordered">
+                    <thead class="bg-gray">
+                        <tr>
+                            <th class="text-white"></th>
+                            <th class="text-white">Name</th>
+                            <th class="text-white">Mobile</th>
+                            <th class="text-white">Email</th>
+                            <th class="text-white">City</th>
+                            <th class="text-white">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                        $count = 1;
+                        foreach ($internDetails as $value) {
+                            $checked = '';
+                            $encode_volunteer_id = rtrim(strtr(base64_encode($value['volunteer_id']), "+/", "-_"), "=");
+                            $volunteer_id = $value['volunteer_id'];
+                            $assigning_task = $this->LoginModel->assign_task_volunteer_taskType($cityID, $taskID, $volunteer_id);
+                            // echo "<pre>";
+                            // print_r($assigning_task);exit;
+                            if (count($assigning_task) > 0) {
+                                $checked = "checked disabled";
+                            } else {
+                                $checked = 'name="volunteer[]"';
+                            }
+                            ?>
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="largerCheckbox" <?php echo $checked; ?>
+                                        value="<?php echo $value['volunteer_id']; ?>"
+                                        id="volunteer<?php echo $value['volunteer_id']; ?>" />
+                                </td>
+                                <!-- <td><?php //echo $count++; 
+                                                ?></td> -->
+                                <td>
+                                    <?php if ($value['gender'] == 1) {
+                                        echo "Mr.";
+                                    } elseif ($value['gender'] == 2) {
+                                        echo "Mrs.";
+                                    } ?>                 <?php echo ucwords($value['first_name'] . ' ' . $value['last_name']); ?>
+                                    <br>
+                                    <a href="#" data-toggle="modal" data-target=".profile-details"
+                                        onclick="fetch_details('<?php echo $encode_volunteer_id; ?>','profile_details');">
+                                        <small class="text-primary">(View Profile)</small></a>
+                                </td>
+                                <td><?php echo $value['mobile']; ?></td>
+                                <td><?php echo $value['email']; ?></td>
+                                <td><?php echo $value['city_name']; ?></td>
+                                <?php
+                                if (sizeof($assigning_task) > 0) {
+                                    ?>
+                                    <td>
+                                        <span class="badge bg-success  me-1 mb-1 mt-1">Assigned</span><br>
+
+                                    </td>
+                                <?php } else { ?>
+                                    <td><span class="badge bg-danger  me-1 mb-1 mt-1">Not Assigned</span></td>
+                                <?php } ?>
+                            </tr>
+                        <?php } ?>
+                    </tbody>
+                </table>
+                <script>
+                    function checked(id) {
+                        alert(id);
+                    }
+                </script>
+            </div>
+            <?php
+
+        }
+    }
+
+    public function all_intern()
+    {
+        try {
+            // Get data from POST request
+            $taskType = $this->input->post('taskType');
+            $taskID = $this->input->post('taskName');
+            $stateName = $this->input->post('stateName');
+            $empId = $this->session->userdata('emp_id');
+            $role = $this->session->userdata('role_id');
+
+            // Fetch the region_id associated with the employee
+            $regionData = $this->Crud_modal->fetch_single_data('region_id', 'employee', ['emp_id' => $empId]);
+            if (!$regionData) {
+                throw new Exception("Invalid Employee ID or Region not found.");
+            }
+
+            // Fetch the state_id(s) for the corresponding region
+            $stateIds = $this->Crud_modal->fetch_single_data('state_id', 'regions', ['region_id' => $regionData['region_id']]);
+
+
+            // Convert state_id string to an array
+            $stateArray = explode(',', $stateIds['state_id']);
+
+            // Check if the role is 1, meaning fetch all interns regardless of state
+            if ($role == 1) {
+
+                // Role is 1, fetch all interns
+                $internDetails = $this->LoginModel->assign_task_intern($stateName); // 99 means all states
+            } else {
+                // Role is not 1, fetch interns based on the selected state
+                if ($stateName == 99) {
+                    // Fetch interns for all states in the stateArray
+                    $internDetails = $this->LoginModel->assign_task_intern(99, $stateArray);
+                } else {
+                    // Validate that the specific state is part of the available states
+                    if (!in_array($stateName, $stateArray)) {
+                        throw new Exception("Invalid state selected.");
+                    }
+                    // Fetch interns for the specific state
+                    $internDetails = $this->LoginModel->assign_task_intern($stateName, []);
+                }
+            }
+
+            // Check if interns were found
+            if (empty($internDetails)) {
+                echo "<p>No interns found for the selected criteria.</p>";
+                return;
+            }
+
+            // Generate the HTML table with intern details
+            ?>
+            <div id="tb<?php echo htmlspecialchars($stateName); ?>">
+                <table class="table table-bordered">
+                    <thead class="bg-gray">
+                        <tr>
+                            <th class="text-white"></th>
+                            <th class="text-white">Name</th>
+                            <th class="text-white">Mobile</th>
+                            <th class="text-white">Email</th>
+                            <th class="text-white">City</th>
+                            <th class="text-white">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                        foreach ($internDetails as $value) {
+                            $checked = '';
+                            $intern_id = $value['intern_id'];
+                            $assigning_task = $this->LoginModel->assign_task_intern_taskType($stateName, $taskID, $intern_id);
+
+                            if (!empty($assigning_task)) {
+                                $checked = "checked disabled";
+                            } else {
+                                $checked = 'name="interns[]"';
+                            }
+                            ?>
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="largerCheckbox" <?php echo $checked; ?>
+                                        value="<?php echo $value['intern_id']; ?>" id="intern<?php echo $value['intern_id']; ?>" />
+                                </td>
+                                <td><?php echo htmlspecialchars($value['first_name']); ?></td>
+                                <td><?php echo htmlspecialchars($value['mobile']); ?></td>
+                                <td><?php echo htmlspecialchars($value['email']); ?></td>
+                                <td><?php echo htmlspecialchars($value['city_name']); ?></td>
+                                <?php
+                                if (sizeof($assigning_task) > 0) {
+                                    ?>
+                                    <td>
+                                        <span class="badge bg-success  me-1 mb-1 mt-1">Assigned</span><br>
+
+                                    </td>
+                                <?php } else { ?>
+                                    <td><span class="badge bg-danger  me-1 mb-1 mt-1">Not Assigned</span></td>
+                                <?php } ?>
+                            </tr>
+                            <?php
+                        }
+                        ?>
+                    </tbody>
+                </table>
+                <script>
+                    function checked(id) {
+                        alert(id);
+                    }
+                </script>
+            </div>
+            <?php
+
+        } catch (Exception $e) {
+            // Handle errors gracefully
+            echo "<p>Error: " . $e->getMessage() . "</p>";
+        }
+    }
+
+
+
+
+
+    public function logout()
+    {
+        $this->session->unset_userdata('userID');
+        $this->session->sess_destroy();
+        //die();
+        echo '<script>window.location.href = "' . base_url() . 'login"</script>';
+        //redirect('login');
+    }
+
+    public function partner_login()
+    {
+        $res['user_id'] = "";
+        $res['password'] = "";
+        if ($this->input->post()) {
+            $res['user_id'] = $this->input->post('user_id');
+            $res['password'] = $this->input->post('password');
+            if ($this->input->post('signin') == 'signin') {
+                $rules_array = array(
+                    array(
+                        'field' => 'user_id',
+                        'label' => 'Email Address',
+                        'rules' => 'trim|required',
+                        'errors' => array(
+                            'required' => 'Enter Email Address.',
+                        ),
+                    ),
+                    array(
+                        'field' => 'password',
+                        'label' => 'Password',
+                        'rules' => 'trim|required',
+                        'errors' => array(
+                            'required' => 'Enter Password',
+                        ),
+                    ),
+                );
+                $this->form_validation->set_rules($rules_array);
+                if ($this->form_validation->run() == TRUE) {
+                    $user_id = $this->input->post('user_id');
+                    $password = $this->input->post('password');
+                    $fields = array(
+                        'password',
+                        'user_id',
+                        'email',
+                        'status',
+                        'dioceses_id',
+                        'name',
+                    );
+                    $where = array(
+                        'user_id' => $user_id,
+                    );
+                    $limit = '';
+                    $order_by = '';
+                    $results = $this->Curl_model->fetch_data('dioceses', $fields, $where, $limit, $order_by);
+                    //print_r($results);exit;
+                    if (!empty($results) && $results != '') {
+                        $r_password = $results['password'];
+                        if ($r_password == md5($password)) {
+                            if ($results['status'] == 1) {
+                                $this->session->set_userdata('dioceses_id', $results['dioceses_id']);
+                                $this->session->set_userdata('partner_name', $results['name']);
+                                echo '<script>window.location.href = "' . base_url() . 'partner-dashboard"</script>';
+                            } else {
+                                $this->session->set_userdata('error', 'Your Login has been block.');
+                            }
+                        } else {
+                            $this->session->set_userdata('error', 'Wrong Password');
+                        }
+                    } else {
+                        $this->session->set_userdata('error', 'Please Enter Valid Email Address');
+                    }
+                }
+            }
+        }
+        $this->load->view('partner-login', $res);
+    }
+
+    public function partner_logout()
+    {
+        $this->session->unset_userdata('dioceses_id');
+        echo '<script>window.location.href = "' . base_url() . 'partner-login"</script>';
+    }
+
+    public function test()
+    {
+        $CI = &get_instance();
+        echo $encode_data = $CI->get_library->encode('12345678');
+        echo $encode_data = $CI->get_library->decode('tY7HjYamUGu6m9A/kWLCj01fLyXKqKMTKDyL0ntLz4tDXqMkJbrA3hPyLDHuK4uhAfYKzvdFoN89FmmUEt0UBw==');
+    }
+
+    public function otp()
+    {
+        if ($this->session->userdata('userID')) {
+            echo '<script>window.location.href = "' . base_url() . 'dashboard"</script>';
+        } else {
+            $link = $this->uri->segment(2);
+            $link2 = $this->uri->segment(3);
+            $data['userID'] = $userID = base64_decode(str_pad(strtr($link, '-_', '+/'), strlen($link) % 4, '=', STR_PAD_RIGHT));
+            $data['email'] = $email = base64_decode(str_pad(strtr($link2, '-_', '+/'), strlen($link2) % 4, '=', STR_PAD_RIGHT));
+            //get mobile number
+            $fields = array(
+                'mobile'
+            );
+            $where = array(
+                'userID' => $userID,
+
+            );
+            $limit = '';
+            $order_by = array('userID', 'DESC');
+            $user_record = $this->Curl_model->fetch_data('users', $fields, $where, $limit, $order_by);
+            $mob = $user_record['mobile'];
+            $otp = $this->create_otp();
+            $where = array(
+                'userID' => $userID,
+            );
+            $fields = array(
+                'mobileOTP' => $otp,
+            );
+            $results = $this->Curl_model->update_data('users', $fields, $where);
+            $this->sendOTP($mob, $otp);
+            $this->load->view('otp', $data);
+        }
+    }
+
+    public function verfy_mobile_otp()
+    {
+        $uid = $this->input->post('uid');
+        $uotp = $this->input->post('uotp');
+        $record = $this->Curl_model->check_numrow('users', 'userID=' . $uid . ' and mobileOTP="' . $uotp . '"');
+        if ($record == 1) {
+            $fields = array(
+                'mobileConfrmationStatus' => 1,
+            );
+            $where = array(
+                'userID' => $uid,
+            );
+            $this->Curl_model->update_data('users', $fields, $where);
+            echo 1;
+        } else {
+            echo 2;
+        }
+    }
+
+    public function sendOTP_bkp()
+    {
+        $mob = '9560031521';
+        $otp = '8541';
+        $massage = 'Dear User, Your OTP for Caritas India is:' . $otp . ' Thankyou';
+        $msg = str_replace(' ', '%20', $massage);
+        $curl = curl_init();
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => "http://182.18.162.128/api/mt/SendSMS?ApiKey=918191&senderid=CRTSIN&channel=trans&DCS=0&flashsms=0&number=" . $mob . "&text=" . $msg . "&route=8",
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "GET",
+            CURLOPT_HTTPHEADER => array(
+                "cache-control: no-cache",
+                "postman-token: 85bd4deb-2816-307f-8948-0dfbaddd4386"
+            ),
+        ));
+        $response = curl_exec($curl);
+        $err = curl_error($curl);
+        curl_close($curl);
+        if ($err) {
+            echo "cURL Error #:" . $err;
+        } else {
+            return $response;
+        }
+    }
+
+    public function sendOTP($mobileNumber, $otp)
+    {
+        $msg = 'Dear User, Your OTP for Caritas India is:' . $otp . ' Thankyou';
+        $message = urlencode($msg);
+        $authKey = "367517AJfEyIv5Cbi614b363dP1";
+        $senderId = "CRTSIN";
+        $tempID = "1207163117852320807";
+        $route = "4";
+        $postData = array(
+            'authkey' => $authKey,
+            'mobiles' => '91' . $mobileNumber,
+            'message' => $message,
+            'DLT_TE_ID' => $tempID,
+            'sender' => $senderId,
+            'route' => $route
+        );
+        $url = "http://map.txtapi.com//api/sendhttp.php";
+        // init the resource
+        $ch = curl_init();
+        curl_setopt_array($ch, array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $postData
+            //,CURLOPT_FOLLOWLOCATION => true
+        ));
+        //Ignore SSL certificate verification
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+        //get response
+        $output = curl_exec($ch);
+
+        //Print error if any
+        if (curl_errno($ch)) {
+            echo 'error:' . curl_error($ch);
+        } else {
+            return $output;
+        }
+        curl_close($ch);
+    }
+
+    public function create_otp()
+    {
+        $length = 4;
+        $keys = array_merge(range(0, 9), range(0, 9));
+
+        $key = "";
+        for ($i = 0; $i < $length; $i++) {
+            $key .= $keys[mt_rand(0, count($keys) - 1)];
+        }
+        return $key;
+    }
+
+    public function otp_login()
+    {
+        if ($this->session->userdata('userID')) {
+            echo '<script>window.location.href = "' . base_url() . 'dashboard"</script>';
+        }
+        $CI = &get_instance();
+        $res['mobile'] = "";
+        if ($this->input->post()) {
+            $res['mobile'] = $this->input->post('mobile');
+            if ($this->input->post('signin') == 'signin') {
+                $rules_array = array(
+                    array(
+                        'field' => 'mobile',
+                        'label' => 'Mobile No.',
+                        'rules' => 'trim|required|min_length[10]|max_length[10]',
+                        'errors' => array(
+                            'required' => 'Please Enter Mobile No.',
+                            'min_length' => 'Invalid Mobile No.',
+                            'max_length' => 'Invalid Mobile No.',
+                        ),
+
+                    ),
+                );
+
+                $this->form_validation->set_rules($rules_array);
+                if ($this->form_validation->run() == TRUE) {
+                    $mobile = $this->input->post('mobile');
+                    $results = $this->LoginModel->fetch_details($mobile, '');
+                    if (!empty($results) && $results != '') {
+                        if ($results['status'] == 1) {
+                            $otp = $this->create_otp();
+                            $userID = $results['userID'];
+                            $res['userID'] = $userID;
+                            $where = array(
+                                'userID' => $userID,
+                            );
+                            $fields = array(
+                                'mobileOTP' => $otp,
+                            );
+                            $results = $this->Curl_model->update_data('users', $fields, $where);
+                            $this->sendOTP($mobile, $otp);
+                            $this->load->view('verify_otp_login', $res);
+                        } else {
+                            $this->session->set_userdata('error', 'Your account deactivated please contact to the admin.');
+                        }
+                    } else {
+                        $this->session->set_userdata('error', 'Please Enter Valid Mobile Number');
+                    }
+                }
+            }
+        }
+        $this->load->view('otp_login', $res);
+    }
+
+    public function verfy_login_otp()
+    {
+        $res['userID'] = $uid = $this->input->post('uid');
+        $res['mobile'] = $mobile = $this->input->post('mobile');
+        if ($this->input->post('otp') !== '') {
+            $uotp = $this->input->post('otp');
+            $record = $this->Curl_model->check_numrow('users', 'userID=' . $uid . ' and mobile="' . $mobile . '" and mobileOTP="' . $uotp . '"');
+            if ($record == 1) {
+                $fields = array(
+                    'mobileConfrmationStatus' => 1,
+                );
+                $where = array(
+                    'userID' => $uid,
+                );
+                $this->Curl_model->update_data('users', $fields, $where);
+                $this->login_with_mobile($mobile);
+            } else {
+                $this->session->set_userdata('error', 'OTP not matched.');
+                $this->load->view('verify_otp_login', $res);
+            }
+        } else {
+            $this->session->set_userdata('error', 'Enter OTP.');
+            $this->load->view('verify_otp_login', $res);
+        }
+    }
+
+    public function login_with_mobile($mobile)
+    {
+        $results = $this->LoginModel->fetch_details($mobile, '');
+        $uid = $results['userID'];
+        if (!empty($results) && $results != '') {
+            if ($results['status'] == 1) {
+                if ($results['mobileConfrmationStatus'] == 1) {
+                    if ($results['mailConfrmationStatus'] == 1) {
+                        if ($results['roleID'] == 2) {
+                            if ($results['verify'] == 1) {
+                                //redirect('dashboard');
+                                $this->session->set_userdata('userID', $results['userID']);
+                                $this->session->set_userdata('roleID', $results['roleID']);
+                                echo '<script>window.location.href = "' . base_url() . 'dashboard"</script>';
+                            } else if ($results['verify'] == 2) {
+                                $this->session->set_userdata('error', 'Your Verification has been block.');
+                            } else {
+                                $this->session->set_userdata('error', 'Your Verification is pending from admin side');
+                            }
+                        } else {
+                            $this->session->set_userdata('userID', $results['userID']);
+                            $this->session->set_userdata('roleID', $results['roleID']);
+                            echo '<script>window.location.href = "' . base_url() . 'admin-dashboard"</script>';
+                        }
+                    } else {
+                        $this->session->set_userdata('error', 'First Verify from your email');
+                    }
+                } else {
+                    $this->session->set_userdata('error', 'First Verify from your mobile number<br>');
+                }
+            } else {
+                $this->session->set_userdata('error', 'Your account deactivated please contact to the admin.');
+            }
+        } else {
+            $this->session->set_userdata('error', 'Please Enter Valid Email Address');
+        }
+    }
+
+    public function thank_you()
+    {
+
+        $this->load->view('thank-you');
+    }
+    public function thank_youpost()
+    {
+
+        $this->load->view('thank-you-2');
+    }
+
+    public function progrmaVolunteer_thankYou()
+    {
+        $data['val'] = $this->uri->segment(2);
+        $this->load->view('progrmaVolunteer-thankYou', $data);
+    }
+
+    public function program_volunteerFulldetails()
+    {
+        $fullDetails = $this->uri->segment(2);
+        $val = base64_decode(str_pad(strtr($fullDetails, '-_', '+/'), strlen($fullDetails) % 4, '=', STR_PAD_RIGHT));
+        $where = "id = '$val'";
+        $data['opportunity'] = $this->Crud_modal->fetch_all_data('*', 'opportunity', 'opportunity_status= 1', 'opportunity_name ASC');
+        $data['programvolunteerFulldetails'] = $this->Crud_modal->all_data_select('*', 'volunteer_program_users', $where, 'id desc');
+        // echo "<pre>";
+        // print_r($data['programvolunteerFulldetails']);exit;
+        $this->load->view('program-volunteerFulldetails', $data);
+    }
+
+    public function test_maill()
+    {
+        $mail = new PHPMailer();
+        $mail->isSMTP();
+        $mail->SMTPDebug = 2; // Set to 2 for detailed debugging output
+        $mail->Host = 'smtp.office365.com';
+        $mail->Port = 587;
+        $mail->SMTPAuth = true;
+        $mail->Username = 'noreply@crymail.org';
+        $mail->Password = '^%n7wh#m7_2k';
+        $mail->SMTPSecure = 'tls';
+
+        $mail->setFrom('noreply@crymail.org');
+        $mail->AddAddress("ravishankar.k@neuralinfo.org");
+        // $mail->addBCC("ravishankar.k@neuralinfo.org", "Ravi");
+        $mail->FromName = 'cry Vms';
+        $mail->IsHTML(true);
+        $mail->Subject = 'OTP From CRY VMS ';
+        $mail->Body = 'Hello User Your One Time Password is 12344565';
+        if (!$mail->Send()) {
+            echo "Message could not be sent. <p>";
+            echo "Mailer Error: " . $mail->ErrorInfo;
+        } else {
+
+            echo 'Sent';
+        }
+    }
+
+
+    public function upload_close_up_photo()
+    {
+
+        $id_proof = $this->input->post('close_up_photo');
+        $intern_id = $this->input->post('intern_id');
+        if ($_FILES['close_up_photo'] != "") {
+            $config['upload_path'] = './internDoc/closeup_photo';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["close_up_photo"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('close_up_photo')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors('', '');
+            } else {
+                $file = $this->upload->data();
+                $close_up_photoint['close_up_photo'] = $file['file_name'];
+                $where = array(
+                    'intern_id' => $intern_id,
+                );
+                $result = $this->Curl_model->update_data('interns_data', $close_up_photoint, $where);
+                if ($result == 1) {
+                    echo 1;
+                } else {
+                    echo 0;
+                }
+            }
+            // echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+    }
+
+    public function volunteer_upload_close_up_photo()
+    {
+
+        $id_proof = $this->input->post('close_up_photo');
+        $volunteer_id = $this->input->post('volunteer_id');
+        if ($_FILES['close_up_photo'] != "") {
+            $config['upload_path'] = './volunteerDoc/closeup_photo';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["close_up_photo"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('close_up_photo')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors('', '');
+            } else {
+                $file = $this->upload->data();
+                $close_up_photoint['close_up_photo'] = $file['file_name'];
+                $where = array(
+                    'volunteer_id' => $volunteer_id,
+                );
+                $result = $this->Curl_model->update_data('volunteer_data', $close_up_photoint, $where);
+                if ($result == 1) {
+                    echo 1;
+                } else {
+                    echo 0;
+                }
+            }
+            // echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+    }
+
+    public function upload_letter_parents_attach()
+    {
+
+        $id_proof = $this->input->post('letter_parents_attach');
+        $intern_id = $this->input->post('intern_id');
+        if ($_FILES['letter_parents_attach'] != "") {
+            $config['upload_path'] = './internDoc/reference_letter';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["letter_parents_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('letter_parents_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors('', '');
+            } else {
+                $file = $this->upload->data();
+                $letter_parents_attachint['letter_parents_attach'] = $file['file_name'];
+                $where = array(
+                    'intern_id' => $intern_id,
+                );
+                $result = $this->Curl_model->update_data('interns_data', $letter_parents_attachint, $where);
+                if ($result == 1) {
+                    echo 1;
+                } else {
+                    echo 0;
+                }
+            }
+            // echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+    }
+
+    public function volunteer_upload_letter_parents_attach()
+    {
+
+        $id_proof = $this->input->post('letter_parents_attach');
+        $volunteer_id = $this->input->post('volunteer_id');
+        if ($_FILES['letter_parents_attach'] != "") {
+            $config['upload_path'] = './volunteerDoc/reference_letter';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["letter_parents_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('letter_parents_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors('', '');
+            } else {
+                $file = $this->upload->data();
+                $letter_parents_attachint['letter_parents_attach'] = $file['file_name'];
+                $where = array(
+                    'volunteer_id' => $volunteer_id,
+                );
+                $result = $this->Curl_model->update_data('volunteer_data', $letter_parents_attachint, $where);
+                if ($result == 1) {
+                    echo 1;
+                } else {
+                    echo 0;
+                }
+            }
+            // echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+    }
+
+    public function upload_ref_attach()
+    {
+
+        $id_proof = $this->input->post('ref_attach');
+        $intern_id = $this->input->post('intern_id');
+        if ($_FILES['ref_attach'] != "") {
+            $config['upload_path'] = './internDoc/reference_letter';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["ref_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('ref_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors('', '');
+            } else {
+                $file = $this->upload->data();
+                $ref_attachint['ref_attach'] = $file['file_name'];
+                $where = array(
+                    'intern_id' => $intern_id,
+                );
+                $result = $this->Curl_model->update_data('interns_data', $ref_attachint, $where);
+                if ($result == 1) {
+                    echo 1;
+                } else {
+                    echo 0;
+                }
+            }
+            // echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+    }
+
+    public function volunteer_upload_ref_attach()
+    {
+
+        $id_proof = $this->input->post('ref_attach');
+        $volunteer_id = $this->input->post('volunteer_id');
+        if ($_FILES['ref_attach'] != "") {
+            $config['upload_path'] = './volunteerDoc/reference_letter';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["ref_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('ref_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors('', '');
+            } else {
+                $file = $this->upload->data();
+                $ref_attachint['ref_attach'] = $file['file_name'];
+                $where = array(
+                    'volunteer_id' => $volunteer_id,
+                );
+                $result = $this->Curl_model->update_data('volunteer_data', $ref_attachint, $where);
+                if ($result == 1) {
+                    echo 1;
+                } else {
+                    echo 0;
+                }
+            }
+            // echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+    }
+
+
+    public function upload_cv_attach()
+    {
+
+        $id_proof = $this->input->post('cv_attach');
+        $intern_id = $this->input->post('intern_id');
+        if ($_FILES['cv_attach'] != "") {
+            $config['upload_path'] = './internDoc/cv';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["cv_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('cv_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors('', '');
+            } else {
+                $file = $this->upload->data();
+                $cv_attachint['cv_attach'] = $file['file_name'];
+                $where = array(
+                    'intern_id' => $intern_id,
+                );
+                $result = $this->Curl_model->update_data('interns_data', $cv_attachint, $where);
+                if ($result == 1) {
+                    echo 1;
+                } else {
+                    echo 0;
+                }
+            }
+            // echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+    }
+
+    public function volunteer_upload_cv_attach()
+    {
+
+        $id_proof = $this->input->post('cv_attach');
+        $volunteer_id = $this->input->post('volunteer_id');
+        if ($_FILES['cv_attach'] != "") {
+            $config['upload_path'] = './volunteerDoc/cv';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["cv_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('cv_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors('', '');
+            } else {
+                $file = $this->upload->data();
+                $cv_attachint['cv_attach'] = $file['file_name'];
+                $where = array(
+                    'volunteer_id' => $volunteer_id,
+                );
+                $result = $this->Curl_model->update_data('volunteer_data', $cv_attachint, $where);
+                if ($result == 1) {
+                    echo 1;
+                } else {
+                    echo 0;
+                }
+            }
+            // echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+    }
+    public function intern_secondinsertBasicdata()
+    {
+        $intern_id = $this->input->post('intern_id');
+
+        if ($_FILES['id_proof_attach'] != "") {
+            $config['upload_path'] = './internDoc/id_proof';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["id_proof_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('id_proof_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors('', '');
+            } else {
+                $file = $this->upload->data();
+                $id_proof_attachvol['id_proof_attach'] = $file['file_name'];
+                $where = array(
+                    'intern_id' => $intern_id,
+                );
+                $this->Curl_model->update_data('interns_data', $id_proof_attachvol, $where);
+            }
+            echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+        if ($_FILES['add_proof_attach'] != "") {
+            $config['upload_path'] = './internDoc/address_proof';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["add_proof_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('add_proof_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors();
+                exit;
+            } else {
+                $file = $this->upload->data();
+                $add_proof_attachvol['add_proof_attach'] = $file['file_name'];
+                $where = array(
+                    'intern_id' => $intern_id,
+                );
+                $this->Curl_model->update_data('interns_data', $add_proof_attachvol, $where);
+            }
+            echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+        if ($_FILES['letter_parents_attach'] != "") {
+            $config['upload_path'] = './internDoc/letter_parents_attach';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["letter_parents_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('letter_parents_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors();
+                exit;
+            } else {
+                $file = $this->upload->data();
+                $letter_parents_attachvol['letter_parents_attach'] = $file['file_name'];
+                $where = array(
+                    'intern_id' => $intern_id,
+                );
+                $this->Curl_model->update_data('interns_data', $letter_parents_attachvol, $where);
+            }
+            echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+        if ($_FILES['close_up_photo'] != "") {
+            $config['upload_path'] = './internDoc/closeup_photo';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["close_up_photo"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('close_up_photo')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors();
+                exit;
+            } else {
+                $file = $this->upload->data();
+                $close_up_photovol['close_up_photo'] = $file['file_name'];
+                $where = array(
+                    'intern_id' => $intern_id,
+                );
+                $this->Curl_model->update_data('interns_data', $close_up_photovol, $where);
+            }
+            echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+        if ($_FILES['cv_attach'] != "") {
+            $config['upload_path'] = './internDoc/cv';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["cv_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('cv_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors();
+                exit;
+            } else {
+                $file = $this->upload->data();
+                $cv_attachvol['cv_attach'] = $file['file_name'];
+                $where = array(
+                    'intern_id' => $intern_id,
+                );
+                $this->Curl_model->update_data('interns_data', $cv_attachvol, $where);
+            }
+            echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+        if ($_FILES['ref_attach'] != "") {
+            $config['upload_path'] = './internDoc/reference_letter';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["ref_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('ref_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors();
+                exit;
+            } else {
+                $file = $this->upload->data();
+                $ref_attachvol['ref_attach'] = $file['file_name'];
+                $where = array(
+                    'intern_id' => $intern_id,
+                );
+                $this->Curl_model->update_data('interns_data', $ref_attachvol, $where);
+            }
+            echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+    }
+
+    public function upload_add_proof_attach()
+    {
+
+        $id_proof = $this->input->post('add_proof_attach');
+        $intern_id = $this->input->post('intern_id');
+        if ($_FILES['add_proof_attach'] != "") {
+            $config['upload_path'] = './internDoc/address_proof';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["add_proof_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('add_proof_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors('', '');
+            } else {
+                $file = $this->upload->data();
+                $add_proof_attachint['add_proof_attach'] = $file['file_name'];
+                $where = array(
+                    'intern_id' => $intern_id,
+                );
+                $result = $this->Curl_model->update_data('interns_data', $add_proof_attachint, $where);
+                if ($result == 1) {
+                    echo 1;
+                } else {
+                    echo 0;
+                }
+            }
+            // echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+    }
+    public function volunteer_upload_add_proof_attach()
+    {
+
+        $id_proof = $this->input->post('add_proof_attach');
+        $volunteer_id = $this->input->post('volunteer_id');
+        if ($_FILES['add_proof_attach'] != "") {
+            $config['upload_path'] = './volunteerDoc/address_proof';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["add_proof_attach"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('add_proof_attach')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors('', '');
+            } else {
+                $file = $this->upload->data();
+                $add_proof_attachint['add_proof_attach'] = $file['file_name'];
+                $where = array(
+                    'volunteer_id' => $volunteer_id,
+                );
+                $result = $this->Curl_model->update_data('volunteer_data', $add_proof_attachint, $where);
+                if ($result == 1) {
+                    echo 1;
+                } else {
+                    echo 0;
+                }
+            }
+            // echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+    }
+
+
+
+    public function upload_id_proof()
+    {
+        $intern_id = $this->input->post('intern_id');
+
+        // Check if a file is uploaded
+        if (!empty($_FILES['id_proof_attach1']['name'])) {
+
+            // Set upload configuration
+            $config['upload_path'] = FCPATH . 'internDoc/id_proof'; // Full path to ensure validity
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            $config['max_size'] = 1024 * 8; // 8 MB max
+            $new_name = time() . '_' . $_FILES['id_proof_attach1']['name']; // Unique file name
+            $config['file_name'] = $new_name;
+
+            // Load upload library
+            $this->load->library('upload', $config);
+
+            // Try to upload the file
+            if (!$this->upload->do_upload('id_proof_attach1')) {
+                // File upload failed, return error
+                $status = 'error';
+                $msg = $this->upload->display_errors();
+                echo json_encode(['status' => $status, 'msg' => $msg]);
+            } else {
+                // File upload succeeded, process the uploaded data
+                $fileData = $this->upload->data();
+                $file_name = $fileData['file_name'];
+
+                // Prepare data for database
+                $id_proof_attach1int = array(
+                    'id_proof_attach' => $file_name
+                );
+
+                // Prepare where clause
+                $where = array('intern_id' => $intern_id);
+
+                // Update the database
+                $this->load->model('Curl_model');  // Ensure your model is loaded
+                $result = $this->Curl_model->update_data('interns_data', $id_proof_attach1int, $where);
+
+                // Check if the update was successful
+                if ($result == 1) {
+                    echo 1;
+                } else {
+                    echo 0;
+                }
+            }
+        } else {
+            echo json_encode(['status' => 'error', 'msg' => 'No file selected for upload.']);
+        }
+    }
+
+
+
+
+
+    public function volunteer_upload_id_proff()
+    {
+
+        $id_proof = $this->input->post('id_proof');
+        $volunteer_id = $this->input->post('volunteer_id');
+        if ($_FILES['id_proof_attach1'] != "") {
+            $config['upload_path'] = './volunteerDoc/id_proof';
+            $config['allowed_types'] = 'gif|jpg|png|doc|pdf|jpeg';
+            $config['max_size'] = 1024 * 8;
+            $new_name = time() . $_FILES["id_proof_attach1"]['name'];
+            $config['file_name'] = $new_name;
+            $this->load->library('upload', $config);
+            if (!$this->upload->do_upload('id_proof_attach1')) {
+                $status = 'error';
+                $msg = $this->upload->display_errors('', '');
+            } else {
+                $file = $this->upload->data();
+                $id_proof_attach1int['id_proof_attach'] = $file['file_name'];
+                $where = array(
+                    'volunteer_id' => $volunteer_id,
+                );
+                $result = $this->Curl_model->update_data('volunteer_data', $id_proof_attach1int, $where);
+                if ($result == 1) {
+                    echo 1;
+                } else {
+                    echo 0;
+                }
+            }
+            // echo json_encode(array('status' => $status, 'msg' => $msg));
+        }
+    }
+
+
+    public function intern_insertoccupationDetails()
+    {
+
+        try {
+            $intern_id = $this->input->post('intern_id');
+            $name_of_school = $this->input->post('name_of_school');
+            $designation = $this->input->post('designation');
+            $language = $this->input->post('language');
+            $representative = $this->input->post('representative');
+            $communicatedWith = $this->input->post('communicatedWith');
+            $signature = $this->input->post('signature');
+
+            $occupationDetails = array(
+                'name_of_school' => $name_of_school,
+                'designation' => $designation,
+                'language' => implode(',', $language),
+                'representative_cry' => $representative,
+                'whichcryOffice' => $communicatedWith,
+                'signature' => $signature,
+
+            );
+            $status = array(
+                'status' => 7,
+            );
+            $where = array(
+                'intern_id' => $intern_id,
+            );
+            $this->Curl_model->update_data('interns', $status, $where);
+            if ($this->Curl_model->update_data('interns_data', $occupationDetails, $where)) {
+                return 1;
+            } else {
+                return 1;
+            }
+        } catch (Exception $e) {
+            echo 'Caught exception: ', $e->getMessage(), "\n";
+        }
+    }
+
+
+    public function volunteer_insertoccupationDetails()
+    {
+
+        try {
+            $volunteer_id = $this->input->post('volunteer_id');
+            $name_of_school = $this->input->post('name_of_school');
+            $designation = $this->input->post('designation');
+            $language = $this->input->post('language');
+            $representative = $this->input->post('representative');
+            $communicatedWith = $this->input->post('communicatedWith');
+            $signature = $this->input->post('signature');
+
+            $occupationDetails = array(
+                'name_of_school' => $name_of_school,
+                'designation' => $designation,
+                'language' => implode(',', $language),
+                'representative_cry' => $representative,
+                'whichcryOffice' => $communicatedWith,
+                'signature' => $signature,
+            );
+
+            $status = array(
+                'status' => 4,
+                'post_Reg_com_date' => date('Y-m-d'),
+            );
+            $where = array(
+                'volunteer_id' => $volunteer_id,
+            );
+            $this->Curl_model->update_data('volunteer', $status, $where);
+            //   echo "<pre>";
+            //   print_r($result);exit;
+            if ($this->Curl_model->update_data('volunteer_data', $occupationDetails, $where)) {
+                return 1;
+            } else {
+                return 1;
+            }
+        } catch (Exception $e) {
+            echo 'Caught exception: ', $e->getMessage(), "\n";
+        }
+    }
+
+
+
+
+
+    public function mobile_ajaxCheck()
+    {
+        $data['mobile_exsist'] = $this->LoginModel->mobile_exsist_employee();
+
+        if ($data['mobile_exsist'] != 0) {
+            echo 1;
+        } else {
+            echo 0;
+        }
+    }
+
+    public function volunteer_mobile_ajaxCheck()
+    {
+        $data['mobile_exsist'] = $this->LoginModel->mobile_exsist_volunteer();
+
+        if ($data['mobile_exsist'] != 0) {
+            echo 1;
+        } else {
+            echo 0;
+        }
+    }
+
+}

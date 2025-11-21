@@ -1,0 +1,1190 @@
+<?php $base_url = base_url() . 'admin/'; ?>
+<!doctype html>
+<html lang="en" dir="ltr">
+
+<head>
+
+    <!-- META DATA -->
+    <meta charset="UTF-8">
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, user-scalable=0'>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+
+    <!-- FAVICON -->
+    <link rel="shortcut icon" type="image/x-icon" href="<?php echo base_url('admin/'); ?>assets/images/brand/favicon.png" />
+
+    <!-- TITLE -->
+    <title>CRY : VMS</title>
+
+    <!-- BOOTSTRAP CSS -->
+    <link id=" style" href="<?php echo base_url('admin/'); ?>assets/plugins/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+
+    <!-- STYLE CSS -->
+    <link href="<?php echo base_url('admin/'); ?>assets/css/style.css" rel="stylesheet" />
+    <link href="<?php echo base_url('admin/'); ?>assets/css/dark-style.css" rel="stylesheet" />
+    <link href="<?php echo base_url('admin/'); ?>assets/css/skin-modes.css" rel="stylesheet" />
+    <link href="<?php echo base_url('admin/'); ?>assets/css/transparent-style.css" rel="stylesheet" />
+    <link href="<?php echo base_url('admin/'); ?>assets/css/animated.css" rel="stylesheet" />
+
+    <!--- FONT-ICONS CSS -->
+    <link href="<?php echo base_url('admin/'); ?>assets/css/icons.css" rel="stylesheet" />
+    <link type="text/css" href="https://cdn.datatables.net/1.12.1/css/jquery.dataTables.min.css" rel="stylesheet">
+    <link type="text/css" href="https://cdn.datatables.net/buttons/2.2.3/css/buttons.dataTables.min.css" rel="stylesheet">
+
+    <!-- COLOR SKIN CSS -->
+    <link id="theme" rel="stylesheet" type="text/css" media="all" href="<?php echo base_url('admin/'); ?>assets/colors/color1.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
+    <!-- Select2 CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.6-rc.0/css/select2.min.css" rel="stylesheet" />
+
+</head>
+<style>
+    select.form-control:not([size]):not([multiple]) {
+        height: 3.375rem;
+    }
+
+    .login100-form {
+        width: 573px;
+
+    }
+
+    @media (max-width: 992px) {
+        .login100-form {
+            width: 100%;
+        }
+    }
+
+    .login100-form {
+        /* width: 320px; */
+    }
+
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.375rem;
+        font-weight: 500;
+        font-size: 1.40rem;
+        margin-top: 9px;
+    }
+
+    .error {
+        width: 100%;
+        text-align: left;
+        color: red;
+    }
+
+    #calendar_details_b2c,
+    #calendar_details_b2b {
+        display: none;
+    }
+
+    .select2-container .select2-selection--single {
+        height: 3.375rem !important;
+    }
+</style>
+
+<body>
+
+    <!-- BACKGROUND-IMAGE -->
+    <div class="bg-warning">
+
+        <!-- GLOABAL LOADER -->
+        <div id="global-loader">
+            <img src="<?php echo base_url('users/'); ?>assets/images/loader.svg" class="loader-img" alt="Loader">
+        </div>
+        <!-- /GLOABAL LOADER -->
+
+        <!-- PAGE -->
+        <!-- <?php echo $this->session->userdata('master_insert_message'); ?> -->
+
+        <div class="page">
+            <div class="">
+                <!-- CONTAINER OPEN -->
+                <div class="col col-login mx-auto">
+
+                    <!-- <div class="text-center mt-5">
+                        <img src="<?php echo base_url('users/'); ?>
+                        assets/images/brand/ezgif.com-gif-maker.gif" style="border-radius:10px;" class="" alt="">
+                    </div> -->
+                </div>
+
+                <div class="container-login100">
+                    <div class="wrap-login100 p-0">
+                        <div class="card-header">
+                            <span class="login100-form-title">Intern registration form</span>
+                        </div>
+                        <style>
+                            #success_msg {
+                                text-align: center;
+                            }
+                        </style>
+                        <p id="success_msg"></p>
+                        <!-- <?php echo $this->session->flashdata('master_insert_message'); ?> -->
+                        <div class="row ">
+                            <div class="col-md-12">
+                                <div class="">
+                                    <div class="card-body">
+                                        <div class="card">
+                                            <section style="display:block;" id="section1">
+                                                <form id="basicDetails" name="pForm">
+                                                    <h3>Personal Information</h3>
+                                                    <div>
+                                                        <input name="intern_id" type="hidden" class="form-control" value="<?php echo $allinternData['intern_id']; ?>">
+                                                        <div class="row">
+                                                            <div class="control-group form-group col-md-6 mb-0">
+                                                                <label class="form-label fw-bold">First Name</label>
+                                                                <input type="text" value="<?php echo $allinternData['first_name']; ?>" id="firstName" name="firstName" class="form-control" placeholder="Name" required readonly>
+                                                                <p class="error-message"></p>
+                                                            </div>
+                                                            <div class="control-group form-group col-md-6 mb-0">
+                                                                <label class="form-label fw-bold">Last Name</label>
+                                                                <input type="text" value="<?php echo $allinternData['last_name']; ?>" id="lastName" name="lastName" class="form-control" placeholder="Name" required readonly>
+                                                                <p class="error-message"></p>
+                                                            </div>
+                                                            <div class="control-group form-group col-md-6 mb-0">
+                                                                <label class="form-label fw-bold">Email id
+                                                                </label>
+                                                                <input type="email" name="email" value="<?php echo $allinternData['email']; ?>" class="form-control" id="email" placeholder="Email id" required readonly>
+                                                                <p class="error-message"></p>
+                                                            </div>
+                                                            <div class="control-group form-group col-md-6 mb-0">
+                                                                <label class="form-label fw-bold">Phone No.</label>
+                                                                <input type="text" value="<?php echo $allinternData['mobile']; ?>" name="mobile" id="mobile" class="form-control" placeholder="Phone No." required readonly>
+                                                                <p class="error-message"></p>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row">
+
+                                                            <div class="control-group form-group col-md-6 mb-0">
+                                                                <label class="form-label fw-bold">Date of Birth</label>
+                                                                <input type="text" value="<?php echo $allinternData['date_of_birth']; ?>" class="form-control" placeholder="Date of Birth" name="dob" id="dob" required autocomplete="off" readonly>
+                                                                <span id="lblError" style="color:green;"><?php echo $this->session->flashdata('dob_error'); ?></span>
+                                                                <p class="error-message"></p>
+                                                            </div>
+                                                            <div class="control-group form-group col-md-6 mb-0">
+                                                                <label class="form-label fw-bold">Age</label>
+                                                                <input type="text" id="age" name="age" class="form-control" placeholder="Age" required readonly value="">
+                                                                <p class="error-message"></p>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row">
+
+                                                            <div class="control-group form-group col-md- mb-0">
+                                                                <label class="form-label fw-bold">Gender</label>
+                                                                <select class="form-select select2 form-control" id="gender" name="gender" id="validationCustom04" required aria-readonly="">
+                                                                    <option selected value="">Select Gender
+                                                                    </option>
+                                                                    <option value="1" <?php if ($allinternData['gender'] == '1') {
+                                                                                            echo  "selected";
+                                                                                        } ?>>
+                                                                        Male
+                                                                    </option>
+
+                                                                    <option value="2" <?php if ($allinternData['gender'] == '2') {
+                                                                                            echo  "selected";
+                                                                                        } ?>>
+                                                                        Female
+                                                                    </option>
+                                                                    <option value="3" <?php if ($allinternData['gender'] == '3') {
+                                                                                            echo  "selected";
+                                                                                        } ?>>
+                                                                        Prefer not to say
+                                                                    </option>
+                                                                </select>
+                                                                <p class="error-message"></p>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row">
+                                                            <div class="control-group form-group col-md-12 mb-0">
+                                                                <label class="form-label fw-bold">Present Address <span style="color:red; font-size:20px;">*</span>
+                                                                </label>
+                                                                <input type="text" name="present_address" id="present_address" class="form-control" placeholder="Present Address" required>
+                                                                <p class="error-message" id="present_address_error"></p>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row">
+                                                            <div class="control-group form-group col-md-12 mb-0">
+                                                                <label class="form-label fw-bold">Permanent
+                                                                    Address <span style="color:red; font-size:20px;">*</span></label>
+                                                                <input type="text" name="permanent_address" id="permanent_address" class="form-control" placeholder="Permanent Address" required>
+                                                                <p class="error-message" id="permanent_address_error"></p>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row">
+                                                            <div class="control-group form-group col-md-12 mb-0">
+                                                                <label class="form-label fw-bold">Current City<span style="color:red; font-size:20px;">*</span>
+                                                                </label>
+                                                                <input type="text" readonly name="cityResindence" value="<?php echo $allinternData['city_name']; ?>" id="currentCity" class="form-control" placeholder="City Resindence" required>
+                                                                <p class="error-message" id="cityResidence_error"></p>
+                                                            </div>
+                                                        </div>
+                                                        <style>
+                                                            .submitbtnleft {
+                                                                margin-left: 80%;
+                                                                margin-top: 10px;
+
+                                                            }
+                                                        </style>
+                                                        <div class="submitbtnleft" id="step_1_submit">
+                                                            <div class="control-group form-group col-md-12 mb-0 ">
+                                                                <input class="btn btn-warning mt-5 clickMe" id="step_1_submit1" type="button" value="Save and Next ">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                        </div>
+                                        </section>
+
+                                        <section style="display:none;" id="section2">
+                                            <b>
+                                                <div style="text-align: center; margin-top:-30px;">Kindly fill up the necessary details to move forward to join CRY's vision as an Intern
+                                                </div>
+                                            </b>
+                                            <div class="card">
+                                                <form id="documentdetails" name="pForm" enctype="multipart/form-data">
+                                                    <h3>Document Details</h3>
+                                                    <p id="validationError" style="color: red;"></p>
+
+                                                    <div class="row">
+                                                        <input name="intern_id" type="hidden" class="form-control" value="<?php echo $allinternData['intern_id']; ?>" id="internID">
+                                                        <div class="control-group form-group col-md-6 mb-0">
+                                                            <label class="form-label fw-bold">ID Proof<span style="color:red; font-size:20px;">*</span>
+                                                                <input type="file" class="form-control" id="id_proof_attach1" name="id_proof_attach1" class="form-control" required accept=".pdf" value="" onchange="return validate();">
+                                                                <p id="id_proof_attach1msg" style="color:green;"></p>
+                                                        </div>
+
+                                                        <div class="control-group form-group col-md-6 mb-0">
+                                                            <label class="form-label fw-bold">Address Proof<span style="color:red; font-size:20px;">*</span>
+                                                            </label>
+                                                            <input type="file" class="form-control" id="add_proof_attach" name="add_proof" accept=".pdf" class="form-control" required value="" onchange="return validate();">
+                                                            <p id="add_proof_attachmsg" style="color:green;"></p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="control-group form-group col-md-6 mb-0">
+                                                        <label class="form-label fw-bold">Upload a Close-up Photograph
+                                                            <span style="color:red; font-size:20px;">*</span>
+                                                        </label>
+                                                        <input type="file" class="form-control" accept=".jpg" id="close_up_photo" name="close_up_photo" class="form-control" required value="" onchange="return validate();">
+                                                        <small style="color:red"><b>Upload Jpg Image</b></small>
+                                                        <p id="close_up_photomsg" style="color:green;"></p>
+
+                                                    </div>
+
+
+                                                    <div class="row">
+                                                        <div id="paraent_letter" class="control-group form-group col-md-6 mb-0 letter_parents_attach">
+                                                            <label class="form-label fw-bold">consent letter from your parents
+
+
+                                                            </label>
+                                                            <input type="file" class="form-control" accept=".pdf" id="letter_parents_attach" name="letter_parents_attach" class="form-control" value="">
+                                                            <p id="letter_parents_attachmsg" style="color:green;"></p>
+                                                        </div>
+
+                                                    </div>
+                                                    <div class="submitbtnleft">
+                                                        <div class="control-group form-group col-md-12 mb-0 ">
+
+                                                            <input class="btn btn-warning mt-5" id="step2" type="button" value="Save & Next ">
+
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </section>
+
+                                        <section style="display:none;" id="section3">
+                                            <div class="card">
+                                                <form method="post" action="" id="occupationDetails" name="pForm" enctype="multipart/form-data">
+                                                    <h3>Occupational Details</h3>
+                                                    <input name="intern_id" type="hidden" class="form-control" value="<?php echo $allinternData['intern_id']; ?>">
+                                                    <div class="row">
+                                                        <div class="control-group form-group col-md-6 mb-0">
+                                                            <label class="form-label fw-bold">Name of your Institution You're Currently Engaged in (School/College/University/Company) Write NA if 'Not Applicable'<span style="color:red; font-size:20px;">*</span></label>
+                                                            <input type="text" value="<?php echo $allinternData['name_of_school']; ?>" id="name_of_school" name="name_of_school" class="form-control" placeholder="Name of your school/ college" required>
+                                                            <p class="error-message1"></p>
+                                                        </div>
+
+                                                        <div class="control-group form-group col-md-6 mb-0">
+                                                            <label class="form-label fw-bold">Designation if
+                                                                working (Write NA if not applicable) <span style="color:red; font-size:20px;">*</span></label>
+                                                            <input type="text" value="<?php echo $allinternData['designation']; ?>" name="designation" class="form-control" placeholder="Designation if working" required id="designation">
+                                                            <p class="error-message1"></p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row">
+
+                                                        <div class="control-group form-group col-md-6 mb-0">
+                                                            <label class="form-label fw-bold">Languages Known<span style="color:red; font-size:20px;">*</span></label>
+                                                            <select class="form-control select2 form-select" name="language[]" id="language" data-placeholder="" required multiple>
+                                                                <?php foreach ($cry_language_master as $cry_language) { ?>
+                                                                    <option value="<?php echo $cry_language['lan_id']; ?>">
+                                                                        <?php echo $cry_language['lan_name']; ?>
+                                                                    </option><?php } ?>
+                                                            </select>
+                                                            <p class="error-message1"></p>
+                                                        </div>
+                                                        <div class="control-group form-group col-md-6 mb-0">
+                                                            <label class="form-label fw-bold">Who was the CRY
+                                                                representative you interacted with? <span style="color:red; font-size:20px;">*</span>
+                                                            </label>
+                                                            <input type="text" placeholder="Who was the CRY representative you interacted with?" value="" class="form-control" name="representative" id="representative">
+                                                            <p class="error-message1"></p>
+                                                        </div>
+                                                        <div class="control-group form-group col-md-6 mb-0">
+                                                            <label class="form-label fw-bold">Which CRY office had you communicated with?<span style="color:red; font-size:20px;">*</span>
+                                                            </label>
+                                                            <select class="form-control select2 form-select" name="communicatedWith" id="interestsyouBox" data-placeholder="Select " required>
+                                                                <option value="">Which CRY office you had communicated
+                                                                    with/ written to?
+                                                                </option>
+                                                                <option value="1">Delhi</option>
+                                                                <option value="2">Mumbai</option>
+                                                                <option value="3">Kolkata</option>
+                                                                <option value="4">Bangalore</option>
+
+
+                                                            </select>
+                                                        </div>
+                                                        <p class="error-message1"></p>
+
+                                                    </div>
+
+
+                                                    <h5><strong>Read the following Documents carefully before you proceeding <span style="color:red; font-size:20px;">*</span></strong></h5>
+                                                    <div class="row">
+
+                                                        <div class="col-md-6 mb-0">
+                                                            <a href="https://www.cry.org/downloads/CRY-Child-Safeguarding-Policy.pdf" target="_blank">
+                                                                <h5><span>&nbsp;</span><input type="checkbox" value="childProtection" id="" required>
+                                                                    &nbsp;CRY's Child Safeguarding Policy</h5>
+                                                            </a>
+                                                        </div>
+                                                        <p class="error-message"></p>
+                                                        <div class="col-md-6 mb-0">
+                                                            <a href="https://docs.google.com/document/d/14G9qJjqgCFiapxChbbMRW2dsLPnK8WpVxyZo05qSWsk/edit?usp=sharing" target="_blank">
+                                                                <h5><span>&nbsp;</span><input type="checkbox" value=" " required>
+                                                                    &nbsp;
+                                                                    Code of Conduct
+                                                                </h5>
+                                                            </a>
+                                                        </div>
+                                                        <p class="error-message"></p>
+                                                    </div>
+                                                    <div class="row">
+                                                        <div class="col-md-6 mb-0">
+                                                            <a href="<?php echo base_url('/')?>uploads\CRY SH Policy 2020 (3)(0).pdf" target="_blank">
+                                                                <h5><span>&nbsp;</span><input type="checkbox" value=" " required>
+                                                                    &nbsp;CRY – PREVENTION OF SEXUAL HARASSMENT</h5>
+                                                            </a>
+                                                        </div>
+                                                        <div class="col-md-6 mb-0"></div>
+                                                    </div>
+
+                                                    <div class="row">
+                                                        <div class="control-group form-group col-md-6 mb-0">
+                                                            <label class="form-label fw-bold">Signature</label>
+                                                            <input type="text" value="<?php echo $allinternData['signature']; ?>" name="signature" class="form-control" placeholder="Signature" required>
+                                                        </div>
+                                                    </div>
+                                                    <p class="error-message"></p>
+                                                    <div class="submitbtnleft">
+                                                        <div class="control-group form-group col-md-12 mb-0 ">
+
+                                                            <input class="btn btn-warning mt-5 mb-5" id="step_3_submit" type="button" value="Submit ">
+
+                                                        </div>
+                                                        <p class="error-message1"></p>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </section>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6/jquery.min.js" type="text/javascript"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js" type="text/javascript"></script>
+    <link href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css" rel="Stylesheet" type="text/css" />
+    <!-- Add this script inside the <head> section of your HTML -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $("#step_3_submit").click(function() {
+                var isValid = true;
+
+                // Reset previous error messages
+                $(".error-message").text("");
+
+                // Validate Name of School/College/University/Company
+                var nameOfSchool = $("#name_of_school").val();
+                if (nameOfSchool === "") {
+                    $("#name_of_school").siblings(".error-message1").text("This field is required.").css('color', 'red');
+                    isValid = false;
+                }
+
+                // Validate Designation
+                var designation = $("#designation").val();
+                if (designation === "") {
+                    $("#designation").siblings(".error-message1").text("This field is required.").css('color', 'red');
+                    isValid = false;
+                }
+
+                // Validate Languages Known
+                var selectedLanguages = $("#language").val();
+                if (!selectedLanguages || selectedLanguages.length === 0) {
+                    $("#language").siblings(".error-message1").text("Select at least one language.").css('color', 'red');
+                    isValid = false;
+                }
+
+                // Validate CRY representative
+                var representative = $("#representative").val();
+                if (representative === "") {
+                    $("#representative").siblings(".error-message1").text("This field is required.").css('color', 'red');
+                    isValid = false;
+                }
+
+                // Validate CRY office communication
+                var communicatedWith = $("#communicatedWith").val();
+                if (communicatedWith === "") {
+                    $("#communicatedWith").siblings(".error-message1").text("Select a CRY office.").css('color', 'red');
+                    isValid = false;
+                }
+
+                // Validate checkboxes
+                var checkedBoxes = $("input[type=checkbox]:checked").length;
+                if (checkedBoxes < 3) {
+                    $(".error-message").text("Please read and agree to all documents.").css('color', 'red');
+                    isValid = false;
+                }
+
+                if (isValid) {
+                    // If all validation passes, submit the form
+
+                    var form = $("#occupationDetails");
+                    var url = '<?php echo base_url() . 'intern-insertoccupationDetails' ?>';
+                    $.ajax({
+                        type: "POST",
+                        url: url,
+                        data: form.serialize(),
+                        success: function(data) {
+                            window.location.href = "<?php echo base_url('/thank-you-2') ?>";
+                        },
+                        error: function(data) {}
+                    });
+
+                }
+            });
+        });
+    </script>
+    <script>
+        function validate() {
+            $("#file_error").html("");
+            $(".demoInputBox").css("border-color", "#F0F0F0");
+            var fileInput = document.getElementById('add_proof_attach');
+            var file = fileInput.files[0];
+            var fileSizeLimit = 15 * 1024 * 1024; // 2MB in bytes
+
+            if (!file) {
+                $("#file_error").html("Please select a file");
+                $(".demoInputBox").css("border-color", "red");
+                return false;
+            } else if (file.size > fileSizeLimit) {
+                fileInput.value = ''; // Clear the file input field
+                $("#file_error").html("File size should not exceed 2MB");
+                $('#add_proof_attach').attr('required', 'required');
+                $(".demoInputBox").css("border-color", "red");
+                return false;
+            } else {
+
+
+                return true;
+            }
+        }
+    </script>
+    <script>
+        function validate() {
+            $("#file_error").html("");
+            $(".demoInputBox").css("border-color", "#F0F0F0");
+            var fileInput = document.getElementById('close_up_photo');
+            var file = fileInput.files[0];
+            var fileSizeLimit = 15 * 1024 * 1024; // 2MB in bytes
+
+            if (!file) {
+                $("#file_error").html("Please select a file");
+                $(".demoInputBox").css("border-color", "red");
+                return false;
+            } else if (file.size > fileSizeLimit) {
+                fileInput.value = ''; // Clear the file input field
+                $("#file_error").html("File size should not exceed 2MB");
+                $('#close_up_photo').attr('required', 'required');
+                $(".demoInputBox").css("border-color", "red");
+                return false;
+            } else {
+
+
+                return true;
+            }
+        }
+    </script>
+    <script>
+        function validate() {
+            $("#file_error").html("");
+            $(".demoInputBox").css("border-color", "#F0F0F0");
+            var fileInput = document.getElementById('id_proof_attach1');
+            var file = fileInput.files[0];
+            var fileSizeLimit = 15 * 1024 * 1024; // 2MB in bytes
+
+            if (!file) {
+                $("#file_error").html("Please select a file");
+                $(".demoInputBox").css("border-color", "red");
+                return false;
+            } else if (file.size > fileSizeLimit) {
+                fileInput.value = ''; // Clear the file input field
+                $("#file_error").html("File size should not exceed 2MB");
+                $('#id_proof_attach1').attr('required', 'required');
+                $(".demoInputBox").css("border-color", "red");
+                return false;
+            } else {
+
+
+                return true;
+            }
+        }
+    </script>
+
+    <script>
+        $(document).ready(function() {
+            $('#other-profile').css('display', 'none');
+            $('#project_profile').change(function() {
+                let project_profile = $('#project_profile').val();
+                if (project_profile == 11) {
+                    $('#other-profile').css('display', 'block');
+                }
+            });
+        });
+    </script>
+
+
+    <script>
+        $('#step2').click(function(e) {
+            let id_proof_attach = $('#id_proof_attach').val();
+            let add_proof_attach = $('#add_proof_attach').val();
+            let letter_parents_attach = $('#letter_parents_attach').val();
+            let close_up_photo = $('#close_up_photo').val();
+            let cv_attach = $('#cv_attach').val();
+            let ref_attach = $('#ref_attach').val();
+            let validationError = $('#validationError');
+
+            if (id_proof_attach === "" || add_proof_attach === "" || close_up_photo === "" || cv_attach === "") {
+                validationError.text('Please Upload all required documents.');
+                return false;
+            } else {
+                validationError.text(''); // Clear any previous error message
+                $("#section1").css("display", "none");
+                $("#section2").css("display", "none");
+                $("#section3").css("display", "block");
+            }
+        });
+    </script>
+
+    <script>
+        $('#close_up_photo').change(function(e) {
+            e.preventDefault();
+            let close_up_photo = document.getElementById("close_up_photo").files[0];
+            var datas = new FormData();
+            datas.append('close_up_photo', close_up_photo);
+            datas.append("intern_id", '<?php echo $allinternData['intern_id'] ?>');
+            $.ajax({
+                type: "POST",
+                url: '<?php echo base_url() . 'upload_close_up_photo' ?>',
+                data: datas,
+                contentType: false,
+                cache: false,
+                processData: false,
+                success: function(result)
+
+                {
+                    if (result == 1) {
+                        $('#close_up_photomsg').html('Uploaded Successfully');
+                        setTimeout(function() {
+                            $('#close_up_photomsg').hide();
+                        }, 2000);
+                    } else {
+                        alert('something went wrong');
+                    }
+                }
+            });
+
+        });
+    </script>
+
+    <script>
+        $('#letter_parents_attach').change(function(e) {
+            e.preventDefault();
+            let letter_parents_attach = document.getElementById("letter_parents_attach").files[0];
+            var datas = new FormData();
+            datas.append('letter_parents_attach', letter_parents_attach);
+            datas.append("intern_id", '<?php echo $allinternData['intern_id'] ?>');
+            $.ajax({
+                type: "POST",
+                url: '<?php echo base_url() . 'upload_letter_parents_attach' ?>',
+                data: datas,
+                contentType: false,
+                cache: false,
+                processData: false,
+                success: function(result)
+
+                {
+                    if (result == 1) {
+                        $('#letter_parents_attachmsg').html('Uploaded Successfully');
+                        setTimeout(function() {
+                            $('#letter_parents_attachmsg').hide();
+                        }, 2000);
+                    } else {
+                        alert('something went wrong');
+                    }
+                }
+            });
+
+        });
+    </script>
+
+    <script>
+        $('#ref_attach').change(function(e) {
+            e.preventDefault();
+            let ref_attach = document.getElementById("ref_attach").files[0];
+            var datas = new FormData();
+            datas.append('ref_attach', ref_attach);
+            datas.append("intern_id", '<?php echo $allinternData['intern_id'] ?>');
+            $.ajax({
+                type: "POST",
+                url: '<?php echo base_url() . 'upload_ref_attach' ?>',
+                data: datas,
+                contentType: false,
+                cache: false,
+                processData: false,
+                success: function(result)
+
+                {
+                    if (result == 1) {
+                        $('#ref_attachmsg').html('Uploaded Successfully');
+                        setTimeout(function() {
+                            $('#ref_attachmsg').hide();
+                        }, 2000);
+                    } else {
+                        alert('something went wrong');
+                    }
+                }
+            });
+
+        });
+    </script>
+
+    <script>
+        $('#cv_attach').change(function(e) {
+            e.preventDefault();
+            let cv_attach = document.getElementById("cv_attach").files[0];
+            var datas = new FormData();
+            datas.append('cv_attach', cv_attach);
+            datas.append("intern_id", '<?php echo $allinternData['intern_id'] ?>');
+            $.ajax({
+                type: "POST",
+                url: '<?php echo base_url() . 'upload_cv_attach' ?>',
+                data: datas,
+                contentType: false,
+                cache: false,
+                processData: false,
+                success: function(result)
+
+                {
+                    if (result == 1) {
+                        $('#cv_attachmsg').html('Uploaded Successfully');
+                        setTimeout(function() {
+                            $('#cv_attachmsg').hide();
+                        }, 2000);
+                    } else {
+                        alert('something went wrong');
+                    }
+                }
+            });
+
+        });
+    </script>
+
+    <script>
+        $('#add_proof_attach').change(function(e) {
+            e.preventDefault();
+            let add_proof_attach = document.getElementById("add_proof_attach").files[0];
+            var datas = new FormData();
+            datas.append('add_proof_attach', add_proof_attach);
+            datas.append("intern_id", '<?php echo $allinternData['intern_id'] ?>');
+            $.ajax({
+                type: "POST",
+                url: '<?php echo base_url() . 'upload_add_proof_attach' ?>',
+                data: datas,
+                contentType: false,
+                cache: false,
+                processData: false,
+                success: function(result)
+
+                {
+                    if (result == 1) {
+                        $('#add_proof_attachmsg').html('Uploaded Successfully');
+                        setTimeout(function() {
+                            $('#add_proof_attachmsg').hide();
+                        }, 2000);
+                    } else {
+                        alert('something went wrong');
+                    }
+                }
+            });
+
+        });
+    </script>
+
+    <script>
+        $('#id_proof_attach1').change(function(e) {
+            e.preventDefault();
+            let id_proof_attach1 = document.getElementById("id_proof_attach1").files[0];
+            var datas = new FormData();
+            datas.append('id_proof_attach1', id_proof_attach1);
+            datas.append("intern_id", '<?php echo $allinternData['intern_id'] ?>');
+            $.ajax({
+                type: "POST",
+                url: '<?php echo base_url() . 'upload_id_proff' ?>',
+                data: datas,
+
+                contentType: false,
+                cache: false,
+                processData: false,
+                success: function(result)
+
+                {
+                    if (result == 1) {
+                        $('#id_proof_attach1msg').html('Uploaded Successfully');
+                        setTimeout(function() {
+                            $('#id_proof_attach1msg').hide();
+                        }, 2000);
+                    } else {
+                        alert('something went wrong');
+                    }
+                }
+            });
+
+        });
+    </script>
+
+
+    <script>
+        $(document).ready(function() {
+
+            $('#step_1_submit').click(function() {
+                var newage = $('#age').val();
+                if (newage >= 18) {
+                    $('#paraent_letter').css('visibility', 'hidden');
+
+                }
+            });
+
+        });
+    </script>
+
+    <script>
+        $('.feedback').hide();
+        $("#step_1_submit1").click(function(ev) {
+            let present_address = $('#present_address').val();
+            let permanent_address = $('#permanent_address').val();
+            let cityResidence = $('#cityResidence').val();
+
+            // Clear any previous error messages
+            $('.error-message').text("");
+
+            if (present_address == "") {
+                $('#present_address_error').text("Please fill Present Address.").css('color', 'red');
+                return false;
+            }
+
+            if (permanent_address == "") {
+                $('#permanent_address_error').text("Please fill Permanent Address.").css('color', 'red');
+                return false;
+            }
+
+            if (cityResidence == "") {
+                $('#cityResidence_error').text("Please fill City Residence.").css('color', 'red');
+                return false;
+            }
+
+            var form = $("#basicDetails");
+            var url = '<?php echo base_url() . 'intern-insertBasicdata' ?>';
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: form.serialize(),
+                success: function(data) {},
+                error: function(data) {}
+            });
+        });
+    </script>
+
+
+
+
+
+
+    <script>
+        $('#where_know_opportunityBox').hide();
+        jQuery('#where_know_opportunity').change(function() {
+            if ($('#where_know_opportunity').val() == "8") {
+                $('#where_know_opportunityBox').show();
+            } else {
+                $('#where_know_opportunityBox').hide();
+            }
+
+        });
+    </script>
+    <script>
+        $('#interestsBox').hide();
+        jQuery('#interestsyouBox').change(function() {
+            if ($('#interestsyouBox').val() == "11") {
+                $('#interestsBox').show();
+            } else {
+                //$('#lang_input_box').hide();
+            }
+
+        });
+    </script>
+
+    <script>
+        $('#occupation_input_box').hide();
+        jQuery('#occupation').change(function() {
+            if ($('#occupation').val() == "8") {
+                $('#occupation_input_box').show();
+            } else {
+                $('#occupation_input_box').hide();
+            }
+
+        });
+    </script>
+    <script>
+        $('#how_did_input_box').hide();
+        jQuery('#where_know_opportunity').change(function() {
+            if ($('#where_know_opportunity').val() == '8') {
+                $('#how_did_input_box').show();
+            } else {
+                $('#how_did_input_box').hide();
+            }
+
+        });
+    </script>
+
+
+    <script>
+        $('document').ready(function() {
+            $('#step_1_submit').click(function() {
+                $("#section1").css("display", "none");
+                $("#section2").css("display", "block");
+                $("#section3").css("display", "none");
+                // alert('123456789');
+
+            });
+        });
+    </script>
+
+    <script>
+        $('document').ready(function() {
+            var dob = $('#dob').val();
+            //alert(dob);
+            dob = new Date(dob);
+            var today = new Date();
+            var age = Math.floor((today - dob) / (365.25 * 24 * 60 * 60 * 1000));
+            $('#age').val(age);
+        });
+    </script>
+    <script>
+        $(document).ready(function() {
+            $("#country_id").change(function() {
+                var country_id = $(this).val();
+                // alert(country_id);
+                datastr = {
+                    country_id: country_id
+                };
+
+                $.ajax({
+                    url: '<?php echo base_url() ?>get-states',
+                    type: 'post',
+                    data: datastr,
+                    success: function(response) {
+                        $("#state_name").html(response);
+                        $('select').selectpicker('refresh');
+                    }
+                });
+            });
+
+        });
+    </script>
+    <script>
+        $(document).ready(function() {
+            $("#state_name").change(function() {
+
+                var state_id = $(this).val();
+                // alert(state_id);
+                datastr = {
+                    state_id: state_id
+                };
+
+                $.ajax({
+                    url: '<?php echo base_url() ?>get-city',
+                    type: 'post',
+                    data: datastr,
+                    success: function(response) {
+                        $("#city_name").html(response);
+                        $('select').selectpicker('refresh');
+                    }
+                });
+            });
+
+        });
+    </script>
+
+    <script>
+        $(function() {
+            $("#dob").datepicker({
+                changeMonth: true,
+                changeYear: true,
+                // showOn: 'button',
+                buttonImageOnly: false,
+                buttonImage: '<?php echo base_url() ?>web/images/calendar.gif',
+                dateFormat: 'dd-mm-yy',
+                yearRange: '1900:+0',
+                onSelect: function(dateString, txtDate) {
+                    ValidateDOB(dateString);
+                }
+            });
+        });
+
+        function ValidateDOB(dateString) {
+            var lblError = $("#lblError");
+            var parts = dateString.split("-");
+            var dtDOB = new Date(parts[1] + "-" + parts[0] + "-" + parts[2]);
+            var dtCurrent = new Date();
+            lblError.html("Eligibility 13 years ONLY.")
+            if (dtCurrent.getFullYear() - dtDOB.getFullYear() < 13) {
+                $('#dob').val('');
+                return false;
+            }
+
+            if (dtCurrent.getFullYear() - dtDOB.getFullYear() == 13) {
+                if (dtCurrent.getMonth() < dtDOB.getMonth()) {
+                    $('#dob').val('');
+                    return false;
+                }
+                if (dtCurrent.getMonth() == dtDOB.getMonth()) {
+                    if (dtCurrent.getDate() < dtDOB.getDate()) {
+                        $('#dob').val('');
+                        return false;
+                    }
+                }
+            }
+            lblError.html("");
+            return true;
+        }
+    </script>
+
+    <!-- BACK-TO-TOP -->
+    <a href="#top" id="back-to-top"><i class="fa fa-angle-up"></i></a>
+
+
+
+    <script>
+        $('#exampleModal').on('show.bs.modal', function(event) {
+            // Button that triggered the modal
+            var li = $(event.relatedTarget)
+            // Extract info from data attributes 
+            var recipient = li.data('whatever')
+            // Updating the modal content using 
+            // jQuery query selectors
+            var modal = $(this)
+            modal.find('.modal-title')
+                .text('New message to ' + recipient)
+
+            modal.find('.modal-body p')
+                .text('Welcome to ' + recipient)
+        });
+    </script>
+    <script>
+        // Example starter JavaScript for disabling form submissions if there are invalid fields
+        (function() {
+            'use strict'
+
+            // Fetch all the forms we want to apply custom Bootstrap validation styles to
+            var forms = document.querySelectorAll('.needs-validation')
+
+            // Loop over them and prevent submission
+            Array.prototype.slice.call(forms)
+                .forEach(function(form) {
+                    form.addEventListener('submit', function(event) {
+                        if (!form.checkValidity()) {
+                            event.preventDefault()
+                            event.stopPropagation()
+                        }
+
+                        form.classList.add('was-validated')
+                    }, false)
+                })
+        })()
+    </script>
+
+    <!-- <script src="<?php echo base_url('admin/'); ?>jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous">
+</script> -->
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous">
+    </script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous">
+    </script>
+    <!-- JQUERY JS -->
+
+    <!-- BOOTSTRAP JS -->
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/bootstrap/js/popper.min.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/bootstrap/js/bootstrap.min.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/js/jquery.sparkline.min.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/js/circle-progress.min.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/charts-c3/d3.v5.min.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/charts-c3/c3-chart.js"></script>
+
+    <!-- INPUT MASK JS-->
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/input-mask/jquery.mask.min.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/chart/Chart.bundle.js"></script>
+
+    <!-- SIDE-MENU JS-->
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/sidemenu/sidemenu.js"></script>
+
+    <!-- Sticky js -->
+    <script src="<?php echo base_url('admin/'); ?>assets/js/sticky.js"></script>
+
+    <!-- SIDEBAR JS -->
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/sidebar/sidebar.js"></script>
+
+    <!-- Perfect SCROLLBAR JS-->
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/p-scroll/perfect-scrollbar.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/p-scroll/pscroll.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/p-scroll/pscroll-1.js"></script>
+
+    <!-- FILE UPLOADES JS -->
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/fileuploads/js/fileupload.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/fileuploads/js/file-upload.js"></script>
+
+    <!-- INTERNAL Bootstrap-Datepicker js-->
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/bootstrap-daterangepicker/daterangepicker.js">
+    </script>
+    <!--<script>
+    $(document).ready(function() {
+        $('#example').DataTable({
+            dom: 'Bfrtip',
+            buttons: [
+                'copy', 'csv', 'excel', 'pdf', 'print'
+            ]
+        });
+    });
+</script>-->
+
+
+    <script>
+        $(document).ready(function() {
+            $('#example').DataTable({
+                order: [
+                    //  [3, 'desc']
+                ],
+                buttons: [
+                    'copy', 'csv', 'excel', 'pdf', 'print'
+                ]
+            });
+        });
+    </script>
+    <script src="<?php echo base_url('admin/'); ?>assets/js/jquery-3.5.1.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/js/jquery.dataTables.min.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/js/dataTables.buttons.min.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/js/jszip.min.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/js/pdfmake.min.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/js/vfs_fonts.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/js/buttons.html5.min.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/js/buttons.print.min.js"></script>
+
+    <!-- INTERNAL File-Uploads Js-->
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/fancyuploder/jquery.ui.widget.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/fancyuploder/jquery.fileupload.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/fancyuploder/jquery.iframe-transport.js">
+    </script>
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/fancyuploder/jquery.fancy-fileupload.js">
+    </script>
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/fancyuploder/fancy-uploader.js"></script>
+
+    <!-- SELECT2 JS -->
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/select2/select2.full.min.js"></script>
+
+    <!-- BOOTSTRAP-DATERANGEPICKER JS -->
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/bootstrap-daterangepicker/moment.min.js">
+    </script>
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/bootstrap-daterangepicker/daterangepicker.js">
+    </script>
+
+    <!-- INTERNAL Bootstrap-Datepicker js-->
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/bootstrap-datepicker/bootstrap-datepicker.js">
+    </script>
+
+    <!-- INTERNAL Sumoselect js-->
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/sumoselect/jquery.sumoselect.js"></script>
+
+    <!-- TIMEPICKER JS -->
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/time-picker/jquery.timepicker.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/time-picker/toggles.min.js"></script>
+
+    <!-- INTERNAL intlTelInput js-->
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/intl-tel-input-master/intlTelInput.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/intl-tel-input-master/country-select.js">
+    </script>
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/intl-tel-input-master/utils.js"></script>
+
+    <!-- INTERNAL jquery transfer js-->
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/jQuerytransfer/jquery.transfer.js"></script>
+
+    <!-- INTERNAL multi js-->
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/multi/multi.min.js"></script>
+
+    <!-- DATEPICKER JS -->
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/date-picker/date-picker.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/date-picker/jquery-ui.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/input-mask/jquery.maskedinput.js"></script>
+
+    <!-- MULTI SELECT JS-->
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/multipleselect/multiple-select.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/multipleselect/multi-select.js"></script>
+
+    <!-- FORMELEMENTS JS -->
+    <script src="<?php echo base_url('admin/'); ?>assets/js/formelementadvnced.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/js/form-elements.js"></script>
+
+    <!-- Color Theme js -->
+    <script src="<?php echo base_url('admin/'); ?>assets/js/themeColors.js"></script>
+
+    <!-- CUSTOM JS -->
+    <script src="<?php echo base_url('admin/'); ?>assets/js/custom.js"></script>
+
+    <!----------matching editor js------------>
+
+
+    <!-- WYSIWYG Editor JS -->
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/wysiwyag/jquery.richtext.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/wysiwyag/wysiwyag.js"></script>
+
+    <!-- FORMEDITOR JS -->
+    <script src="<?php echo base_url('admin/'); ?>assets/plugins/quill/quill.min.js"></script>
+    <script src="<?php echo base_url('admin/'); ?>assets/js/form-editor2.js"></script>
+</body>
+
+</html>
