@@ -221,7 +221,7 @@
                                 <!-- <singleline>
                                   Reason: <?php echo $comment; ?>
                                 </singleline> -->
-                                <!--[if !mso]><!-->
+                                <!--[if !mso]><!--> 
                               </span>
                               <!--<![endif]-->
                             </td>

@@ -77,7 +77,7 @@
 
 
 
-            <input type="hidden" value="<?php echo $feedbackCertifecate[0]['email'];?>" id="interncertificateEmail">
+            <input type="hidden" value="<?php echo !empty($feedbackCertifecate[0]['email']) ? $feedbackCertifecate[0]['email'] : '';?>" id="interncertificateEmail">
             <p id="success_msg"></p>
 
             <div class="row row-sm">
@@ -154,10 +154,12 @@
     <tbody>
         <?php foreach ($feedbackCertifecate as $internData):
             $encoded_id = rtrim(strtr(base64_encode($internData['intern_id']), '+/', '-_'), '=');
+            $creationTimestamp = !empty($internData['creation_date']) ? strtotime($internData['creation_date']) : false;
+            $creationDate = ($creationTimestamp && $creationTimestamp > 0) ? date("d-m-Y", $creationTimestamp) : '-';
         ?>
         <tr>
             <td><input class="che" value="<?= $internData['intern_id']; ?>" type="checkbox"></td>
-            <td><?= date("d-m-Y", strtotime($internData['creation_date'])); ?></td>
+            <td><?= $creationDate; ?></td>
             <td>
                 <?= ucwords($internData['first_name'] . ' ' . $internData['last_name']); ?><br>
                 <a href="#" data-bs-toggle="modal" data-bs-target=".profile-details"
@@ -174,7 +176,7 @@
                     type="button" 
                     class="btn btn-primary edit-update-btn"
                     data-id="<?= $internData['intern_id']; ?>"
-                    data-content="<?= htmlspecialchars($internData['email_content'], ENT_QUOTES, 'UTF-8'); ?>"
+                    data-content="<?= htmlspecialchars(base64_encode($internData['email_content']), ENT_QUOTES, 'UTF-8'); ?>"
                     data-bs-toggle="modal" 
                     data-bs-target="#editUpdateModal"
                     style="padding: 1% 2% 1% 2%;">
@@ -218,16 +220,58 @@
     let emailContentToLoad = '';
 
     // Initialize CKEditor on page load
-    document.addEventListener('DOMContentLoaded', function () {
-        ClassicEditor
-            .create(document.querySelector('#emailContent'))
-            .then(editor => {
-                ckeditorInstance = editor;
-            })
-            .catch(error => {
-                console.error('CKEditor init error:', error);
-            });
-    });
+    // ── REPLACE karo pura ClassicEditor.create() block ──────────────
+document.addEventListener('DOMContentLoaded', function () {
+    ClassicEditor
+        .create(document.querySelector('#emailContent'), {
+            heading: {
+                options: [
+                    { model: 'paragraph', title: 'Paragraph', class: 'ck-heading_paragraph' },
+                    { model: 'heading1', view: 'h1', title: 'Heading 1', class: 'ck-heading_heading1' },
+                    { model: 'heading2', view: 'h2', title: 'Heading 2', class: 'ck-heading_heading2' }
+                ]
+            }
+        })
+        .then(editor => {
+            ckeditorInstance = editor;
+            console.log('CKEditor initialized');
+            return;
+
+            // ✅ FIX: Enter press pe 2 <br> insert karo
+            editor.editing.view.document.on('keydown', function(evt, data) {
+
+                // Sirf normal Enter — Shift+Enter alag rakho
+                if (data.domEvent.key === 'Enter' && !data.domEvent.shiftKey) {
+
+                    editor.model.change(function(writer) {
+                        var selection = editor.model.document.selection;
+                        var position  = selection.getFirstPosition();
+
+                        // Pehla <br>
+                        var br1 = writer.createElement('softBreak');
+                        writer.insert(br1, position);
+
+                        // Doosra <br> — pehle wale ke baad
+                        var br2 = writer.createElement('softBreak');
+                        writer.insert(br2, writer.createPositionAfter(br1));
+
+                        // Cursor doosre <br> ke baad set karo
+                        writer.setSelection(writer.createPositionAfter(br2));
+                    });
+
+                    // ✅ Default Enter behavior rokko (naya <p> na bane)
+                    data.preventDefault();
+                    evt.stop();
+                }
+
+            }, { priority: 'highest' });
+            // ─────────────────────────────────────────────────────
+
+        })
+        .catch(error => {
+            console.error('CKEditor init error:', error);
+        });
+});
 
     // When edit button is clicked
     document.querySelectorAll('.edit-update-btn').forEach(button => {
@@ -235,7 +279,7 @@
             const internId = this.getAttribute('data-id');
             const emailContent = this.getAttribute('data-content');
             
-            const decoded = decodeHtml(emailContent);
+            const decoded = decodeBase64Html(emailContent);
 
             document.getElementById('internId').value = internId;
             document.getElementById('emailContentValue').value = decoded;
@@ -258,11 +302,35 @@
         }, 200); // Small delay to allow modal to fully render
     });
 
+    function decodeBase64Html(value) {
+        try {
+            const binary = atob(value || '');
+            let encoded = '';
+            for (let i = 0; i < binary.length; i++) {
+                encoded += '%' + ('00' + binary.charCodeAt(i).toString(16)).slice(-2);
+            }
+            return decodeURIComponent(encoded);
+        } catch (e) {
+            return '';
+        }
+    }
+
     // Decode function
     function decodeHtml(html) {
         const txt = document.createElement('textarea');
         txt.innerHTML = html;
         return txt.value;
+    }
+
+    function normalizeCertificateQuotes(content) {
+        return (content || '')
+            .replace(/&amp;/gi, '&')
+            .replace(/&#38;/gi, '&')
+            .replace(/&#x26;/gi, '&')
+            .replace(/[‘’‚‛]/g, "'")
+            .replace(/[“”„]/g, '"')
+            .replace(/[–—]/g, '-')
+            .replace(/…/g, '...');
     }
 </script>
 
@@ -272,7 +340,7 @@
         e.preventDefault(); // Prevent default form submission
 
         var intern_id = $('#internId').val();
-        var emialcontent = ckeditorInstance.getData(); // ✅ Get updated data from CKEditor
+        var emialcontent = normalizeCertificateQuotes(ckeditorInstance.getData()); // ✅ Get updated data from CKEditor
         // alert(emialcontent)
         console.log('intern_id:', intern_id);
         console.log('emailContent:', emialcontent);

@@ -36,7 +36,7 @@ class Intern_report extends MY_Controller
     }
 
 
-    public function pre_registration_intern_report()
+     public function pre_registration_intern_report()
     {
         try {
             if ($this->session->userdata('emp_id') != 'NULL' && $this->session->userdata('emp_id') != '') {
@@ -106,7 +106,7 @@ class Intern_report extends MY_Controller
                     $data['regions'] = $regions;
                     $data['state'] = $state;
                     $data['records'] = $records;
-                    $data['states'] = $this->Crud_modal->all_data_select(
+                    $data['states'] =  $this->Crud_modal->all_data_select(
                         'state_id,state_name',
                         'states',
                         "region_id='$regions'",
@@ -171,10 +171,9 @@ class Intern_report extends MY_Controller
                 }
 
                 $data['selectedIntern'] = $selectedIntern = $this->Admin_model->intern_pre_registration_report($where);
-               
-                //    echo json_encode($data['selectedIntern']);exit;
+            //   echo json_encode($data['selectedIntern']);exit;
                 $data['allRecord'] = $this->Admin_model->All_record_intern_pre_registration_report();
-
+               
                 $config = array();
                 $config["base_url"] = base_url('pre-registration-intern-report');
                 $config["total_rows"] = count($selectedIntern);
@@ -203,7 +202,7 @@ class Intern_report extends MY_Controller
                 redirect(base_url() . 'login', 'refresh');
             }
         } catch (Exception $e) {
-            echo 'Caught exception: ', $e->getMessage(), "\n";
+            echo 'Caught exception: ',  $e->getMessage(), "\n";
         }
     }
 
@@ -218,7 +217,7 @@ class Intern_report extends MY_Controller
                     $date2 = $data['date_to'] = date("Y-m-d");
                     $data['date_from'] = date("Y-m-d", strtotime($date2 . '-7 days'));
 
-                    if ($this->input->post('start_new') != "" && $this->input->post('end_new') != "" && $this->input->post('state_name') != "") {
+                    if ($this->input->post('start_new') != "" && $this->input->post('end_new') != "" &&  $this->input->post('state_name') != "") {
                         $state_name = $this->input->post('state_name');
                         $date1 = $this->input->post('start_new');
                         $date2 = $this->input->post('end_new');
@@ -236,7 +235,7 @@ class Intern_report extends MY_Controller
                     $date2 = $data['date_to'] = date("Y-m-d");
                     $data['date_from'] = date("Y-m-d", strtotime($date2 . '-7 days'));
 
-                    if ($this->input->post('start_new') != "" && $this->input->post('end_new') != "" && $this->input->post('state_name') != "") {
+                    if ($this->input->post('start_new') != "" && $this->input->post('end_new') != "" &&  $this->input->post('state_name') != "") {
                         $state_name = $this->input->post('state_name');
                         $date1 = $this->input->post('start_new');
                         $date2 = $this->input->post('end_new');
@@ -259,7 +258,7 @@ class Intern_report extends MY_Controller
                 redirect(base_url() . 'login', 'refresh');
             }
         } catch (Exception $e) {
-            echo 'Caught exception: ', $e->getMessage(), "\n";
+            echo 'Caught exception: ',  $e->getMessage(), "\n";
         }
     }
     public function post_registration_intern_report()
@@ -272,7 +271,7 @@ class Intern_report extends MY_Controller
                     $date2 = $data['date_to'] = date("Y-m-d");
                     $data['date_from'] = date("Y-m-d", strtotime($date2 . '-7 days'));
 
-                    if ($this->input->post('start_new') != "" && $this->input->post('end_new') != "" && $this->input->post('state_name') != "") {
+                    if ($this->input->post('start_new') != "" && $this->input->post('end_new') != "" &&  $this->input->post('state_name') != "") {
                         $state_name = $this->input->post('state_name');
                         $date1 = $this->input->post('start_new');
                         $date2 = $this->input->post('end_new');
@@ -290,7 +289,7 @@ class Intern_report extends MY_Controller
                     $date2 = $data['date_to'] = date("Y-m-d");
                     $data['date_from'] = date("Y-m-d", strtotime($date2 . '-7 days'));
 
-                    if ($this->input->post('start_new') != "" && $this->input->post('end_new') != "" && $this->input->post('state_name') != "") {
+                    if ($this->input->post('start_new') != "" && $this->input->post('end_new') != "" &&  $this->input->post('state_name') != "") {
                         $state_name = $this->input->post('state_name');
                         $date1 = $this->input->post('start_new');
                         $date2 = $this->input->post('end_new');
@@ -313,7 +312,7 @@ class Intern_report extends MY_Controller
                 redirect(base_url() . 'login', 'refresh');
             }
         } catch (Exception $e) {
-            echo 'Caught exception: ', $e->getMessage(), "\n";
+            echo 'Caught exception: ',  $e->getMessage(), "\n";
         }
     }
 
@@ -327,9 +326,9 @@ class Intern_report extends MY_Controller
                     $date2 = $data['date_to'] = date("Y-m-d");
                     $data['date_from'] = date("Y-m-d", strtotime($date2 . '-7 days'));
                     $where = 'i.status =7';
-                    if ($this->input->post('start_new') != "" && $this->input->post('end_new') != "" && $this->input->post('state_name') != "" && $this->input->post('region_id') != "") {
-                        $data['state'] = $state_name = $this->input->post('state_name');
-                        $data['region_id'] = $region_id = $this->input->post('region_id');
+                    if ($this->input->post('start_new') != "" && $this->input->post('end_new') != "" &&  $this->input->post('state_name') != "" && $this->input->post('region_id') != "") {
+                        $data['state'] =  $state_name = $this->input->post('state_name');
+                        $data['region_id'] =  $region_id = $this->input->post('region_id');
                         $date1 = $this->input->post('start_new');
                         $date2 = $this->input->post('end_new');
                         $date_from = date("Y-m-d", strtotime($date1));
@@ -349,8 +348,8 @@ class Intern_report extends MY_Controller
                     $date2 = $data['date_to'] = date("Y-m-d");
                     $data['date_from'] = date("Y-m-d", strtotime($date2 . '-7 days'));
                     $where = 'i.status =7';
-                    if ($this->input->post('start_new') != "" && $this->input->post('end_new') != "" && $this->input->post('state_name') != "") {
-                        $data['state'] = $state_name = $this->input->post('state_name');
+                    if ($this->input->post('start_new') != "" && $this->input->post('end_new') != "" &&  $this->input->post('state_name') != "") {
+                        $data['state'] =   $state_name = $this->input->post('state_name');
                         $date1 = $this->input->post('start_new');
                         $date2 = $this->input->post('end_new');
                         $date_from = date("Y-m-d", strtotime($date1));
@@ -374,7 +373,7 @@ class Intern_report extends MY_Controller
                 redirect(base_url() . 'login', 'refresh');
             }
         } catch (Exception $e) {
-            echo 'Caught exception: ', $e->getMessage(), "\n";
+            echo 'Caught exception: ',  $e->getMessage(), "\n";
         }
     }
 
@@ -389,7 +388,7 @@ class Intern_report extends MY_Controller
                     $date2 = $data['date_to'] = date("Y-m-d");
                     $data['date_from'] = date("Y-m-d", strtotime($date2 . '-7 days'));
                     // $where = 'status =1';
-                    if ($this->input->post('start_new') != "" && $this->input->post('end_new') != "" && $this->input->post('taskType') != "") {
+                    if ($this->input->post('start_new') != "" && $this->input->post('end_new') != "" &&  $this->input->post('taskType') != "") {
                         $taskType = $this->input->post('taskType');
                         $taskName = $this->input->post('taskName');
                         $date1 = $this->input->post('start_new');
@@ -408,7 +407,7 @@ class Intern_report extends MY_Controller
                     $date2 = $data['date_to'] = date("Y-m-d");
                     $data['date_from'] = date("Y-m-d", strtotime($date2 . '-7 days'));
 
-                    if ($this->input->post('start_new') != "" && $this->input->post('end_new') != "" && $this->input->post('taskType') != "") {
+                    if ($this->input->post('start_new') != "" && $this->input->post('end_new') != "" &&  $this->input->post('taskType') != "") {
                         $taskType = $this->input->post('taskType');
                         $taskName = $this->input->post('taskName');
                         $date1 = $this->input->post('start_new');
@@ -433,7 +432,7 @@ class Intern_report extends MY_Controller
                 redirect(base_url() . 'login', 'refresh');
             }
         } catch (Exception $e) {
-            echo 'Caught exception: ', $e->getMessage(), "\n";
+            echo 'Caught exception: ',  $e->getMessage(), "\n";
         }
     }
 
@@ -449,7 +448,7 @@ class Intern_report extends MY_Controller
                 $fromDate = $this->input->post('cdate_form') != '' ? $this->input->post('cdate_form') : $this->session->userdata('cdate_form');
                 $toDate = $this->input->post('cdate_to') != '' ? $this->input->post('cdate_to') : $this->session->userdata('cdate_to');
                 $records = $this->input->post('crecords') != '' ? $this->input->post('crecords') : ($this->session->userdata('crecords') != '' ? $this->session->userdata('crecords') : 10);
-                if ($regions != "" && $state != "" && $fromDate != "" && $toDate != "") {
+                if ($regions != "" && $state != ""  && $fromDate != "" && $toDate != "") {
                     $data['toDate'] = $toDate;
                     $data['fromDate'] = $fromDate;
                     $data['regionId'] = $regions;
@@ -494,7 +493,7 @@ class Intern_report extends MY_Controller
                     $data['regionId'] = $regions;
                     $data['state'] = $state;
                     $data['records'] = $records;
-                    $data['states'] = $this->Crud_modal->all_data_select(
+                    $data['states'] =  $this->Crud_modal->all_data_select(
                         'state_id,state_name',
                         'states',
                         "region_id='$regions'",
@@ -578,7 +577,7 @@ class Intern_report extends MY_Controller
                 redirect(base_url() . 'login', 'refresh');
             }
         } catch (Exception $e) {
-            echo 'Caught exception: ', $e->getMessage(), "\n";
+            echo 'Caught exception: ',  $e->getMessage(), "\n";
         }
     }
 
@@ -628,216 +627,37 @@ class Intern_report extends MY_Controller
         $objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');
         $objWriter->save('php://output');
     }
-    public function export_pre_registration_intern_report()
-    {
-        $empId = $this->session->userdata('role_id');
-        if (empty($empId)) {
-            redirect(base_url('login'), 'refresh');
-            return;
-        }
+public function export_pr_eregistration_intern_report()
+{
+    // Load DB and helper
 
-        // ✅ Admin (ID = 1) => All records
-        if ((int) $empId === 1) {
-            $records = $this->Admin_model->All_record_intern_pre_registration_report();
-        } else {
-            // ✅ Regional Manager => filter by region's states
-            $region = $this->session->userdata('region_id');
+    // Run query
+    $query = $this->Admin_model->All_record_intern_pre_registration_report(); // Replace with your table name
 
-            $states = $this->Crud_modal->all_data_select(
-                'state_id',
-                'states',
-                "region_id='$region'",
-                'state_name ASC'
-            );
+    
+    // File name
+    $filename = "All_Interns_Data_" . date('Y-m-d_H-i-s') . ".csv";
 
-            $stateIds = array_column($states, 'state_id');
+    // Set headers for download
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment;filename="'.$filename.'"');
 
-            if (empty($stateIds)) {
-                $records = [];
-            } else {
-                // Create WHERE condition for states
-                $stateIdsStr = '"' . implode('","', $stateIds) . '"';
-                $where = "int.state_id IN ($stateIdsStr)";
+    // Open output stream
+    $output = fopen('php://output', 'w');
 
-                $records = $this->Admin_model->All_record_intern_pre_registration_report($where);
-            }
-        }
+    // Write header row (keys of first array)
+    fputcsv($output, array_keys($query[0]));
 
-        // ✅ Normalize
-        if (!is_array($records)) {
-            $records = [];
-        }
-
-        // ✅ Prepare CSV filename
-        $filename = "Intern_PreRegistration_" . date('Y-m-d_H-i-s') . ".csv";
-
-        // ✅ Send headers
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
-
-        if (!empty($records)) {
-            $header = array_keys($records[0]);
-            fputcsv($output, $header);
-
-            foreach ($records as $row) {
-                $line = [];
-                foreach ($header as $col) {
-                    $line[] = isset($row[$col]) ? $row[$col] : '';
-                }
-                fputcsv($output, $line);
-            }
-        } else {
-            $defaultHeader = ['FirstName', 'Lastname', 'Email', 'Mobile', 'State', 'City', 'RegistrationDate', 'Status'];
-            fputcsv($output, $defaultHeader);
-        }
-
-        fclose($output);
-        exit;
-    }
-    public function export_feedback_intern_report()
-    {
-        $empId = $this->session->userdata('role_id');
-        if (empty($empId)) {
-            redirect(base_url('login'), 'refresh');
-            return;
-        }
-
-        // ✅ Admin (ID = 1) => All records
-        if ((int) $empId === 1) {
-            $records = $this->Admin_model->intern_feedback_report_export_all();
-        } else {
-            // ✅ Regional Manager => filter by region's states
-            $region = $this->session->userdata('region_id');
-
-            $states = $this->Crud_modal->all_data_select(
-                'state_id',
-                'states',
-                "region_id='$region'",
-                'state_name ASC'
-            );
-
-            $stateIds = array_column($states, 'state_id');
-
-            if (empty($stateIds)) {
-                $records = [];
-            } else {
-                // Create WHERE condition for states
-                $stateIdsStr = '"' . implode('","', $stateIds) . '"';
-                $where = "int.state_id IN ($stateIdsStr)";
-
-                $records = $this->Admin_model->intern_feedback_report_export_all($where);
-            }
-        }
-
-        // ✅ Normalize
-        if (!is_array($records)) {
-            $records = [];
-        }
-
-        // ✅ Prepare CSV filename
-        $filename = "Intern_feedback_" . date('Y-m-d_H-i-s') . ".csv";
-
-        // ✅ Send headers
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
-
-        if (!empty($records)) {
-            $header = array_keys($records[0]);
-            fputcsv($output, $header);
-
-            foreach ($records as $row) {
-                $line = [];
-                foreach ($header as $col) {
-                    $line[] = isset($row[$col]) ? $row[$col] : '';
-                }
-                fputcsv($output, $line);
-            }
-        } else {
-            $defaultHeader = ['FirstName', 'Lastname', 'Email', 'Mobile', 'State', 'City', 'RegistrationDate', 'Status'];
-            fputcsv($output, $defaultHeader);
-        }
-
-        fclose($output);
-        exit;
-    }
-    public function export_sent_certificate_intern_report()
-    {
-        $empId = $this->session->userdata('role_id');
-        if (empty($empId)) {
-            redirect(base_url('login'), 'refresh');
-            return;
-        }
-
-        // ✅ Admin (ID = 1) => All records
-        if ((int) $empId === 1) {
-            $records = $this->Admin_model->intern_certificate_report_export_all();
-        } else {
-            // ✅ Regional Manager => filter by region's states
-            $region = $this->session->userdata('region_id');
-
-            $states = $this->Crud_modal->all_data_select(
-                'state_id',
-                'states',
-                "region_id='$region'",
-                'state_name ASC'
-            );
-
-            $stateIds = array_column($states, 'state_id');
-
-            if (empty($stateIds)) {
-                $records = [];
-            } else {
-                // Create WHERE condition for states
-                $stateIdsStr = '"' . implode('","', $stateIds) . '"';
-                $where = "int.state_id IN ($stateIdsStr)";
-
-                $records = $this->Admin_model->intern_certificate_report_export_all($where);
-            }
-        }
-
-        // ✅ Normalize
-        if (!is_array($records)) {
-            $records = [];
-        }
-
-        // ✅ Prepare CSV filename
-        $filename = "Intern_sent_certificate_" . date('Y-m-d_H-i-s') . ".csv";
-
-        // ✅ Send headers
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
-
-        if (!empty($records)) {
-            $header = array_keys($records[0]);
-            fputcsv($output, $header);
-
-            foreach ($records as $row) {
-                $line = [];
-                foreach ($header as $col) {
-                    $line[] = isset($row[$col]) ? $row[$col] : '';
-                }
-                fputcsv($output, $line);
-            }
-        } else {
-            $defaultHeader = ['FirstName', 'Lastname', 'Email', 'Mobile', 'State', 'City', 'RegistrationDate', 'Status'];
-            fputcsv($output, $defaultHeader);
-        }
-
-        fclose($output);
-        exit;
+    // Write data rows
+    foreach ($query as $row) {
+        fputcsv($output, $row);
     }
 
-
-    public function feedback_report()
+    fclose($output);
+    exit;
+}
+public function feedback_report()
+  
     {
         try {
             if ($this->session->userdata('emp_id') != 'NULL' && $this->session->userdata('emp_id') != '') {
@@ -967,13 +787,13 @@ class Intern_report extends MY_Controller
                 $str_links = $this->pagination->create_links();
                 $data["links"] = explode('&nbsp;', $str_links);
                 $data['feedbackReport'] = $this->Admin_model->intern_feedback_report($config["per_page"], $page, $where);
-
+               
                 $data['regions'] = $this->Crud_modal->fetch_all_data('*', 'regions', 'region_status=1');
-                $this->load->view('temp/head');
-                $this->load->view('temp/header', $data);
-                $this->load->view('temp/sidebar');
-                $this->load->view('feedback-report', $data);
-                $this->load->view('temp/footer');
+               $this->load->view('temp/head');
+        $this->load->view('temp/header', $data);
+        $this->load->view('temp/sidebar');
+        $this->load->view('feedback-report', $data);
+        $this->load->view('temp/footer');
             } else {
                 redirect(base_url() . 'login', 'refresh');
             }
@@ -981,6 +801,215 @@ class Intern_report extends MY_Controller
             echo 'Caught exception: ', $e->getMessage(), "\n";
         }
     }
+   public function export_pre_registration_intern_report()
+    {
+        $empId = $this->session->userdata('role_id');
+        if (empty($empId)) {
+            redirect(base_url('login'), 'refresh');
+            return;
+        }
 
+        // ✅ Admin (ID = 1) => All records
+        if ((int) $empId === 1) {
+            $records = $this->Admin_model->All_record_intern_pre_registration_report();
+        } else {
+            // ✅ Regional Manager => filter by region's states
+            $region = $this->session->userdata('region_id');
+
+            $states = $this->Crud_modal->all_data_select(
+                'state_id',
+                'states',
+                "region_id='$region'",
+                'state_name ASC'
+            );
+
+            $stateIds = array_column($states, 'state_id');
+
+            if (empty($stateIds)) {
+                $records = [];
+            } else {
+                // Create WHERE condition for states
+                $stateIdsStr = '"' . implode('","', $stateIds) . '"';
+				
+                $where = "int.state_id IN ($stateIdsStr)";
+
+                $records = $this->Admin_model->All_record_intern_pre_registration_report($where);
+            }
+        }
+
+        // ✅ Normalize
+        if (!is_array($records)) {
+            $records = [];
+        }
+
+        // ✅ Prepare CSV filename
+        $filename = "Intern_PreRegistration_" . date('Y-m-d_H-i-s') . ".csv";
+
+        // ✅ Send headers
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+        $output = fopen('php://output', 'w');
+        fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
+
+        if (!empty($records)) {
+            $header = array_keys($records[0]);
+            fputcsv($output, $header);
+
+            foreach ($records as $row) {
+                $line = [];
+                foreach ($header as $col) {
+                    $line[] = isset($row[$col]) ? $row[$col] : '';
+                }
+                fputcsv($output, $line);
+            }
+        } else {
+            $defaultHeader = ['FirstName', 'Lastname', 'Email', 'Mobile', 'State', 'City', 'RegistrationDate', 'Status'];
+            fputcsv($output, $defaultHeader);
+        }
+
+        fclose($output);
+        exit;
+    }
+	
+	public function export_feedback_intern_report()
+    {
+        $empId = $this->session->userdata('role_id');
+        if (empty($empId)) {
+            redirect(base_url('login'), 'refresh');
+            return;
+        }
+
+        // ✅ Admin (ID = 1) => All records
+        if ((int) $empId === 1) {
+            $records = $this->Admin_model->intern_feedback_report_export_all();
+        } else {
+            // ✅ Regional Manager => filter by region's states
+            $region = $this->session->userdata('region_id');
+
+            $states = $this->Crud_modal->all_data_select(
+                'state_id',
+                'states',
+                "region_id='$region'",
+                'state_name ASC'
+            );
+
+            $stateIds = array_column($states, 'state_id');
+
+            if (empty($stateIds)) {
+                $records = [];
+            } else {
+                // Create WHERE condition for states
+                $stateIdsStr = '"' . implode('","', $stateIds) . '"';
+                $where = "int.state_id IN ($stateIdsStr)";
+
+                $records = $this->Admin_model->intern_feedback_report_export_all($where);
+            }
+        }
+
+        // ✅ Normalize
+        if (!is_array($records)) {
+            $records = [];
+        }
+
+        // ✅ Prepare CSV filename
+        $filename = "Intern_feedback_" . date('Y-m-d_H-i-s') . ".csv";
+
+        // ✅ Send headers
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+        $output = fopen('php://output', 'w');
+        fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
+
+        if (!empty($records)) {
+            $header = array_keys($records[0]);
+            fputcsv($output, $header);
+
+            foreach ($records as $row) {
+                $line = [];
+                foreach ($header as $col) {
+                    $line[] = isset($row[$col]) ? $row[$col] : '';
+                }
+                fputcsv($output, $line);
+            }
+        } else {
+            $defaultHeader = ['FirstName', 'Lastname', 'Email', 'Mobile', 'State', 'City', 'RegistrationDate', 'Status'];
+            fputcsv($output, $defaultHeader);
+        }
+
+        fclose($output);
+        exit;
+    }
+	
+	  public function export_sent_certificate_intern_report()
+    {
+        $empId = $this->session->userdata('role_id');
+        if (empty($empId)) {
+            redirect(base_url('login'), 'refresh');
+            return;
+        }
+
+        // ✅ Admin (ID = 1) => All records
+        if ((int) $empId === 1) {
+            $records = $this->Admin_model->intern_certificate_report_export_all();
+        } else {
+            // ✅ Regional Manager => filter by region's states
+            $region = $this->session->userdata('region_id');
+
+            $states = $this->Crud_modal->all_data_select(
+                'state_id',
+                'states',
+                "region_id='$region'",
+                'state_name ASC'
+            );
+
+            $stateIds = array_column($states, 'state_id');
+
+            if (empty($stateIds)) {
+                $records = [];
+            } else {
+                // Create WHERE condition for states
+                $stateIdsStr = '"' . implode('","', $stateIds) . '"';
+                $where = "int.state_id IN ($stateIdsStr)";
+
+                $records = $this->Admin_model->intern_certificate_report_export_all($where);
+            }
+        }
+
+        // ✅ Normalize
+        if (!is_array($records)) {
+            $records = [];
+        }
+
+        // ✅ Prepare CSV filename
+        $filename = "Intern_sent_certificate_" . date('Y-m-d_H-i-s') . ".csv";
+
+        // ✅ Send headers
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+        $output = fopen('php://output', 'w');
+        fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
+
+        if (!empty($records)) {
+            $header = array_keys($records[0]);
+            fputcsv($output, $header);
+
+            foreach ($records as $row) {
+                $line = [];
+                foreach ($header as $col) {
+                    $line[] = isset($row[$col]) ? $row[$col] : '';
+                }
+                fputcsv($output, $line);
+            }
+        } else {
+            $defaultHeader = ['FirstName', 'Lastname', 'Email', 'Mobile', 'State', 'City', 'RegistrationDate', 'Status'];
+            fputcsv($output, $defaultHeader);
+        }
+
+        fclose($output);
+        exit;
+    }
 }
 

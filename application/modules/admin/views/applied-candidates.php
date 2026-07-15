@@ -89,7 +89,7 @@
                                         <option value="1">Onboarding-Candidate</option>
                                         <option value="2">Shortlisted</option>
                                         <option value="3">Interview Scheduled</option>
-                                        <option value="4">Interview Ongoing</option>
+                                        <option value="11">Interview Ongoing</option>
                                         <option value="5">Interview Cleared</option>
                                         <option value="6">Sent Offer Letter</option>
                                         <option value="7">Registraion Completed</option>
@@ -127,7 +127,7 @@
                         </form>
                         <div class="card-body">
                             <div class="table-responsive">
-                                <table id="example" class="display nowrap" style="width:100%">
+                                <table id="appliedCandidatesTable" class="display nowrap" style="width:100%">
                                     <thead class="bg-gray-light">
                                         <tr>
                                             <th>Sr. No</th>
@@ -142,51 +142,7 @@
                                             <th>More</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        <?php
-                                        $count = 1;
-                                        foreach ($intern as $internData) {
-                                            $intern_id = $internData['intern_id'];
-                                            $internEmail = $internData['email'];
-                                            $encoded_id = rtrim(strtr(base64_encode($intern_id), '+/', '-_'), '=');
-                                        ?>
-                                            <tr>
-                                                <td>
-                                                    <?php echo $count++; ?>
-                                                </td>
-                                                <td>
-                                                    <?php echo date('d-m-Y', strtotime($internData['creation_date'])); ?>
-                                                </td>
-                                                <td>
-                                                    <?php echo ucwords($internData['first_name'] . ' ' . $internData['last_name']); ?>
-                                                    <br>
-                                                    <a href="#" data-toggle="modal" data-target=".profile-details" onclick="fetch_details('<?php echo $encoded_id; ?>','profile_details');">
-                                                        <small class="text-primary">(View Profile)</small></a>
-                                                </td>
-                                                <td><?php echo $internEmail; ?></td>
-                                                <td><?php echo $internData['mobile']; ?>
-                                                <td><?php echo $internData['skill_name']; ?></td>
-                                                <td><?php echo $internData['state_name']; ?></td>
-                                                <td><?php echo $internData['city_name']; ?></td>
-                                                <td> <?php if ($internData['cv_file'] == NULL) { ?>
-                                                        <span><a href="#">NA</a></span>
-                                                    <?php } else { ?>
-                                                        <span><a href="<?php echo base_url(); ?>uploads/<?php echo $internData['cv_file']; ?>" target="_blank">View CV</a></span>
-                                                    <?php } ?>
-                                                </td>
-
-                                                <td>
-
-                                                    <a href="<?php echo base_url(); ?>hr-process/<?php echo $encoded_id; ?>" class="badge rounded-pill bg-info me-1 mb-1 mt-1">
-                                                        <?php echo $this->Admin_model->check_status($internData['status']); ?>
-
-                                                    </a>
-
-                                                </td>
-                                            </tr>
-                                        <?php
-                                        } ?>
-                                    </tbody>
+                                    <tbody></tbody>
                                 </table>
                             </div>
                         </div>
@@ -220,38 +176,35 @@
     }
 </script>
 <script>
-    let example = $('#example').DataTable({
-        columnDefs: [{
-            orderable: false,
-            className: 'select-checkbox',
-            targets: 0
-        }],
-        select: {
-            style: 'os',
-            selector: 'td:first-child'
-        },
-        order: [
-            [1, 'asc']
-        ]
-    });
-    example.on("click", "th.select-checkbox", function() {
-        if ($("th.select-checkbox").hasClass("selected")) {
-            example.rows().deselect();
-            $("th.select-checkbox").removeClass("selected");
-        } else {
-            example.rows().select();
-            $("th.select-checkbox").addClass("selected");
-        }
-    }).on("select deselect", function() {
-        ("Some selection or deselection going on")
-        if (example.rows({
-                selected: true
-            }).count() !== example.rows().count()) {
-            $("th.select-checkbox").removeClass("selected");
-        } else {
-            $("th.select-checkbox").addClass("selected");
-        }
+    $(window).on('load', function() {
+        var appliedCandidatesTable = $('#appliedCandidatesTable').DataTable({
+            processing: true,
+            serverSide: true,
+            searching: true,
+            ordering: true,
+            pageLength: 10,
+            order: [
+                [1, 'desc']
+            ],
+            columnDefs: [{
+                orderable: false,
+                targets: [0, 8]
+            }],
+            ajax: {
+                url: '<?php echo base_url("applied-candidates-list"); ?>',
+                type: 'POST',
+                data: function(data) {
+                    $.each($('#form').serializeArray(), function(index, field) {
+                        data[field.name] = field.value;
+                    });
+                }
+            }
+        });
 
+        $('#form').on('submit', function(event) {
+            event.preventDefault();
+            appliedCandidatesTable.ajax.reload();
+        });
     });
 </script>
 

@@ -422,6 +422,7 @@ $route['intern-request-certificate'] = 'admin/Admin_new/intern_request_certifica
 $route['intern-request-certificate/(:any)'] = 'admin/Admin_new/intern_request_certificate';
 $route['applied-candidates'] = 'admin/Admin/applied_candidates';
 $route['applied-candidates/(:any)'] = 'admin/Admin/applied_candidates';
+$route['applied-candidates-list'] = 'admin/Admin/applied_candidates_list';
 $route['hr-process'] = 'admin/Admin/hr_process';
 $route['update_offer_latter'] = 'admin/Hr_proccess/update_offer_latter';
 $route['hr-process/(:any)'] = 'admin/Admin/hr_process';
@@ -520,6 +521,8 @@ $route['transfer-report'] = 'users/User/transfer_report';
 
 //---------------------hr Process for Pranshi mam -------------------------
 $route['shortlist_status_update'] = 'admin/Hr_proccess/shortlist_status_update';
+$route['shortlist_mail'] = 'admin/Hr_proccess/shortlist_mail';
+
 $route['get_same_day_schedule_user_count'] = 'admin/Hr_proccess/get_same_day_schedule_user_count';
 $route['save_interview_schedule_data'] = 'admin/Hr_proccess/save_interview_schedule_data';
 $route['clear_interview'] = 'admin/Hr_proccess/clear_interview';
@@ -529,7 +532,7 @@ $route['update_job_schedule_data'] = 'admin/Hr_proccess/update_job_schedule_data
 $route['mail_interview_data'] = 'admin/Hr_proccess/mail_interview_data';
 $route['interview_final_mail'] = 'admin/Hr_proccess/interview_final_mail';
 $route['send_offer_to_user'] = 'admin/Hr_proccess/send_offer_to_user';
-$route['shortlist_mail'] = 'admin/Hr_proccess/shortlist_mail';
+
 $route['not_shortlist_mail'] = 'admin/Hr_proccess/not_shortlist_mail';
 $route['send_offerLetter_emails/(:any)'] = 'admin/Hr_proccess/send_offerLetter_emails';
 $route['send_certificate_on_mail/(:any)'] = 'admin/Admin_new/send_certificate_on_mail';

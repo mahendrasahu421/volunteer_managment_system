@@ -169,7 +169,66 @@ class Admin_new extends MY_Controller
         }
     }
 
-     public function intern_request_certificate()
+    private function certificate_format_date($date, $format = 'd-m-Y', $fallback = '')
+    {
+        if (empty($date) || $date == '0000-00-00' || $date == '0000-00-00 00:00:00') {
+            return $fallback;
+        }
+
+        $timestamp = strtotime($date);
+        if ($timestamp === false || $timestamp <= 0) {
+            return $fallback;
+        }
+
+        return date($format, $timestamp);
+    }
+
+    private function certificate_end_date($joiningDate, $durationWeeks, $format = 'M jS Y')
+    {
+        if (empty($joiningDate) || $joiningDate == '0000-00-00' || $joiningDate == '0000-00-00 00:00:00') {
+            return '';
+        }
+
+        $timestamp = strtotime($joiningDate);
+        if ($timestamp === false || $timestamp <= 0) {
+            return '';
+        }
+
+        return date($format, strtotime('+' . (int) $durationWeeks . ' weeks', $timestamp));
+    }
+
+    private function certificate_html_to_text($html)
+    {
+        $html = (string) $html;
+        $html = preg_replace('/<br\s*\/?>/i', "\n", $html);
+        $html = preg_replace('/<\/(p|div|li|h[1-6])>/i', "\n", $html);
+        $html = preg_replace('/<(p|div|li|h[1-6])[^>]*>/i', '', $html);
+        $html = str_replace('&nbsp;', ' ', $html);
+        $text = html_entity_decode(strip_tags($html), ENT_QUOTES, 'UTF-8');
+        do {
+            $previousText = $text;
+            $text = html_entity_decode($text, ENT_QUOTES, 'UTF-8');
+        } while ($previousText !== $text);
+        $text = preg_replace('/[ \t\x{00A0}]+/u', ' ', $text);
+        $text = preg_replace("/\r\n|\r/", "\n", $text);
+        $text = preg_replace('/\n{3,}/', "\n\n", $text);
+        $text = str_replace(
+            array('‘', '’', '‚', '‛', '“', '”', '„', '–', '—', '…', 'â€˜', 'â€™', 'â€œ', 'â€', 'â€“', 'â€”', 'â€¦'),
+            array("'", "'", "'", "'", '"', '"', '"', '-', '-', '...', "'", "'", '"', '"', '-', '-', '...'),
+            $text
+        );
+
+        if (function_exists('iconv')) {
+            $converted = @iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $text);
+            if ($converted !== false) {
+                $text = $converted;
+            }
+        }
+
+        return trim($text);
+    }
+
+    public function intern_request_certificate()
     {
         try {
             // Check session
@@ -222,18 +281,18 @@ class Admin_new extends MY_Controller
             if ($role == 1) { // Role 1: Admin
                 // If all filters are given
                 if (!empty($inputStart) && !empty($inputEnd) && !empty($inputState) && !empty($inputRegion)) {
-                    $where = "fd.creation_date >= '$date_from' AND fd.creation_date <= '$date_to' AND i.state_id = $inputState AND i.status = 8 AND isr.status = 2 AND fd.status = 1";
+                    $where = "isr.creation_date >= '$date_from' AND isr.creation_date <= '$date_to' AND i.state_id = $inputState AND i.status = 8 AND isr.status = 2";
                 }
                 // Only region filter
                 else if (!empty($inputRegion)) {
                     if ($inputRegion == '99') { // All regions
-                        $where = "fd.creation_date >= '$date_from' AND fd.creation_date <= '$date_to' AND i.status = 8 AND isr.status = 2 AND fd.status = 1";
+                        $where = "isr.creation_date >= '$date_from' AND isr.creation_date <= '$date_to' AND i.status = 8 AND isr.status = 2";
                     } else {
                         // Get states under this region
                         $states = $this->Crud_modal->all_data_select('state_id', 'states', "region_id='$inputRegion'", 'state_name ASC');
                         if ($states) {
                             $stateIds = '"' . implode('","', array_column($states, 'state_id')) . '"';
-                            $where = "fd.creation_date >= '$date_from' AND fd.creation_date <= '$date_to' AND i.state_id IN ($stateIds) AND i.status = 8 AND isr.status = 2 AND fd.status = 1";
+                            $where = "isr.creation_date >= '$date_from' AND isr.creation_date <= '$date_to' AND i.state_id IN ($stateIds) AND i.status = 8 AND isr.status = 2";
                         } else {
                             $where = "1=0"; // No states, so no results
                         }
@@ -245,7 +304,7 @@ class Admin_new extends MY_Controller
                     $states = $this->Crud_modal->all_data_select('state_id', 'states', "region_id='$region'", 'state_name ASC');
                     if ($states) {
                         $stateIds = '"' . implode('","', array_column($states, 'state_id')) . '"';
-                        $where = "fd.creation_date >= '$date_from' AND fd.creation_date <= '$date_to' AND i.state_id IN ($stateIds) AND i.status = 8 AND isr.status = 2 AND fd.status = 1";
+                        $where = "isr.creation_date >= '$date_from' AND isr.creation_date <= '$date_to' AND i.state_id IN ($stateIds) AND i.status = 8 AND isr.status = 2";
                     } else {
                         $where = "1=0";
                     }
@@ -256,15 +315,15 @@ class Admin_new extends MY_Controller
                 $data['states'] = $this->Crud_modal->fetch_all_data('*', 'states', "region_id=$region");
 
                 if (!empty($inputStart) && !empty($inputEnd) && !empty($inputState) && !empty($inputRegion)) {
-                    $where = "fd.creation_date >= '$date_from' AND fd.creation_date <= '$date_to' AND i.state_id = $inputState AND i.status = 8 AND isr.status = 2 AND fd.status = 1";
+                    $where = "isr.creation_date >= '$date_from' AND isr.creation_date <= '$date_to' AND i.state_id = $inputState AND i.status = 8 AND isr.status = 2";
                 } else if (!empty($inputRegion)) {
                     if ($inputRegion == '99') {
-                        $where = "fd.creation_date >= '$date_from' AND fd.creation_date <= '$date_to' AND i.status = 8 AND isr.status = 2 AND fd.status = 1";
+                        $where = "isr.creation_date >= '$date_from' AND isr.creation_date <= '$date_to' AND i.status = 8 AND isr.status = 2 AND fd.status = 1";
                     } else {
                         $states = $this->Crud_modal->all_data_select('state_id', 'states', "region_id='$inputRegion'", 'state_name ASC');
                         if ($states) {
                             $stateIds = '"' . implode('","', array_column($states, 'state_id')) . '"';
-                            $where = "fd.creation_date >= '$date_from' AND fd.creation_date <= '$date_to' AND i.state_id IN ($stateIds) AND i.status = 8 AND isr.status = 2 AND fd.status = 1";
+                            $where = "isr.creation_date >= '$date_from' AND isr.creation_date <= '$date_to' AND i.state_id IN ($stateIds) AND i.status = 8 AND isr.status = 2 AND fd.status = 1";
                         } else {
                             $where = "1=0";
                         }
@@ -279,7 +338,7 @@ class Admin_new extends MY_Controller
                     $states = $this->Crud_modal->all_data_select('state_id', 'states', "region_id='$region'", 'state_name ASC');
                     if ($states) {
                         $stateIds = '"' . implode('","', array_column($states, 'state_id')) . '"';
-                        $where = "fd.creation_date >= '$date_from' AND fd.creation_date <= '$date_to' AND i.state_id IN ($stateIds) AND i.status = 8 AND isr.status = 2 AND fd.status = 1";
+                        $where = "isr.creation_date >= '$date_from' AND isr.creation_date <= '$date_to' AND i.state_id IN ($stateIds) AND i.status = 8 AND isr.status = 2";
                     } else {
                         $where = "1=0";
                     }
@@ -292,7 +351,7 @@ class Admin_new extends MY_Controller
             // Prepare email template
             $emailTemplate = $this->Crud_modal->fetch_single_data('email_templates_id,body_content', 'email_templates', 'status=1 AND email_templates_id=9');
 
-              foreach ($data['feedbackCertifecate'] as $key => $intern) {
+            foreach ($data['feedbackCertifecate'] as $key => $intern) {
                 // 🧠 Skill IDs and Names
                 $skillIdStr = $intern['skill_id'] ?? ($intern['task_keyword'] ?? '');
                 $skillsStr = $fetchSkills($skillIdStr);
@@ -300,9 +359,8 @@ class Admin_new extends MY_Controller
                 // 📅 Date Formatting
                 $joiningDate = $intern['joining_date'];
                 $durationWeeks = $intern['internshipDeruation'];
-                $formattedJoiningDate = date('M jS Y', strtotime($joiningDate));
-                $endTimestamp = strtotime("+{$durationWeeks} weeks", strtotime($joiningDate));
-                $formattedEndDate = date('M jS Y', $endTimestamp);
+                $formattedJoiningDate = $this->certificate_format_date($joiningDate, 'M jS Y');
+                $formattedEndDate = $this->certificate_end_date($joiningDate, $durationWeeks);
 
                 // ✍️ Signature Image
                 $signatureImg = '<img src="' . base_url('/uploads/signature/' . $intern['signature']) . '" />';
@@ -402,34 +460,25 @@ class Admin_new extends MY_Controller
         }
     }
 
-    
- public function update_certificate_data()
+
+    public function update_certificate_data()
     {
         $intern_id = $this->input->post('intern_id');
-        $intern_email = $this->input->post('intern_email'); // Note: aap ajax me ye bhej rahe ho ya nahi?
-        $emialcontent = $this->input->post('emialcontent');
-
-        // Debugging temporarily
-        // var_dump($intern_id, $intern_email, $emialcontent); exit;
-
-        $cleanContent = strip_tags($emialcontent);
-        $cleanContent = str_replace('&nbsp;', ' ', $cleanContent);
-        $cleanContent = preg_replace('/\s+/', ' ', $cleanContent);
-        $cleanContent = trim($cleanContent);
+        $intern_email = $this->input->post('intern_email'); // (optional)
+        $content = (string) $this->input->post('emialcontent', false);
+        $content = str_ireplace(array('&amp;', '&#38;', '&#x26;'), '&', $content);
 
         // Check agar intern_email mil raha hai ya nahi. Agar nahi mil raha to query fail hogi.
         if (empty($intern_email)) {
-            // Agar ajax me email send nahi kar rahe ho, to ya to use na karo ya phir DB update me email hatao
             $where = ['intern_id' => $intern_id];
         } else {
             $where = ['intern_id' => $intern_id, 'email' => $intern_email];
         }
 
         $emailData = [
-            'certificate_email' => $cleanContent,
+            'certificate_email' => $content,
         ];
 
-        // Assuming Crud_modal->update_data accepts array for where
         $update = $this->Crud_modal->update_data($where, 'interns', $emailData);
 
         if ($update) {
@@ -439,149 +488,246 @@ class Admin_new extends MY_Controller
         }
     }
     public function view_certificate()
-    {
-        // Get employee ID from session
-        $emp_id = $this->session->userdata('emp_id');
-        $where1 = "emp_id = $emp_id";
-
-        // Fetch employee details
-        $data['empSing'] = $this->Admin_model->get_employye_details($where1);
-
-        // Check if signature is empty
-        $empsing = $data['empSing']['signature'];
-
-        $emp_name = $data['empSing']['emp_name'];
-        $des_name = $data['empSing']['des_name'];
-
-        // Decode intern ID from URL
-        $intern_id = $this->uri->segment(2);
-        $val = base64_decode(str_pad(strtr($intern_id, '-_', '+/'), strlen($intern_id) % 4, '=', STR_PAD_RIGHT));
-
-        // Fetch intern details from the database
-        $where = 'intern_id = "' . $val . '"';
-        $internemailData = $this->Crud_modal->fetch_single_data('*', 'interns', $where);
-
-        // Check if intern data exists
-        if (!$internemailData) {
-            echo "Intern data not found.";
-            return;
-        }
-
-        $offerEmailFormat = $internemailData['certificate_email'];
-        $date = date('d-m-Y');
-        $certificatehead = "TO WHOM IT MAY CONCERN";
-
-        // Initialize FPDF for PDF generation
-        $pdf = new FPDF();
-        $pdf->AddPage();
-        $pdf->SetFont('Arial', '', 11);
-
-        // Set image for certificate background
-        $pdf->Image(base_url() . '/uploads/MumbaiOffice_certificate.png', 1, 1, 208.5);
-		//$pdf->Image($_SERVER['DOCUMENT_ROOT'] . '/uploads/MumbaiOffice_certificate.png', 1, 1, 208.5);
-        // Set date on top-right
-        $pdf->SetY(34.6);
-        $pdf->SetX(158);
-        $pdf->Cell(15, 8, $date, 0, 'R');
-
-        // Set certificate heading
-        $pdf->SetY(44.6);
-        $pdf->SetX(70);
-        $pdf->SetFont('Arial', 'B', 13);
-        $pdf->Cell(15, 8, $certificatehead, 0, 'R');
-
-        // Set font for body text
-        $pdf->SetFont('Arial', '', 11);
-
-        // Display the body text with multi-cell to handle line breaks
-        $pdf->SetY(55);
-        $pdf->Ln(5);
-        $pdf->SetX(20);
-        $text = $offerEmailFormat;
-        $pdf->multiCell(170, 8, strip_tags($text));
-
-        // Add signature image if available
-        $signaturePath = $_SERVER['DOCUMENT_ROOT'] . '/uploads/signature/' . $empsing;
-        
-        if (file_exists($signaturePath)) {
-            $pdf->SetX(20);
-            $pdf->Cell(30, 70, $emp_name);
-            $pdf->SetX(20);
-
-            $pdf->Image($signaturePath, 8, 130, 60);
-
-            $pdf->SetY(130);
-            $pdf->SetX(20);
-            $pdf->Cell(30, 70, $des_name);
-            $path = 'certificate/' . rand() . '.pdf';
-            $pdf->Output($path, 'F');
-        } else {
-            $pdf->SetY(158);
-            $pdf->SetX(8);
-            $pdf->Cell(60, 8, "Signature not available", 0, 0, 'C');
-        }
-
-
-        // Output the PDF
-        $pdf->Output();
+{
+    // ── Auth ────────────────────────────────────────────
+    $emp_id = $this->session->userdata('emp_id');
+    $where1 = "emp_id = $emp_id";
+    $data['empSing'] = $this->Admin_model->get_employye_details($where1);
+    $empsing  = $data['empSing']['signature'];
+    $emp_name = $data['empSing']['emp_name'];
+    $des_name = $data['empSing']['des_name'];
+ 
+    // ── Intern ID decode ─────────────────────────────────
+    $intern_id = $this->uri->segment(2);
+    $val = base64_decode(
+        str_pad(strtr($intern_id, '-_', '+/'), strlen($intern_id) % 4, '=', STR_PAD_RIGHT)
+    );
+ 
+    $where = 'intern_id = "' . $val . '"';
+    $internemailData = $this->Crud_modal->fetch_single_data('*', 'interns', $where);
+ 
+    if (!$internemailData) {
+        echo "Intern data not found.";
+        return;
     }
-
-
-    public function send_certificate_letter($internemailData)
-    {
-        $emp_id = $this->session->userdata('emp_id');
-        $where1 = "emp_id = $emp_id";
-        $data['empSing'] = $this->Admin_model->get_employye_details($where1);
-        $empsing = $data['empSing']['signature'];
-
-        if (empty($empsing)) {
-            echo "<script>alert('Your Signature is not updated. Please contact your Admin.');</script>";
-            return; // Exit the function if signature is missing
-        }
-        $emp_name = $data['empSing']['emp_name'];
-        $des_name = $data['empSing']['des_name'];
-        $empsing = $data['empSing']['signature'];
-        $offerEmailFormat = $internemailData['certificate_email'];
-        $date = date('d-m-Y');
-        $certificatehead = "TO WHOM IT MAY CONCERN";
-        $pdf = new FPDF();
-        $pdf->AddPage();
-        $pdf->SetFont('Arial', '', 11);
-
-        // $pdf->Image(base_url() . '/uploads/MumbaiOffice_certificate.png', 1, 1, 208.5);
-        // $pdf->Image(base_url() . '/uploads/signature/' . $empsing . '', 8, 158, 60);
-         $pdf->Image($_SERVER['DOCUMENT_ROOT'] . '/uploads/MumbaiOffice_certificate.png', 10, 8, 185);
-        // $pdf->Image($_SERVER['DOCUMENT_ROOT'] . '/uploads/signature/' . $empsing . '', 8, 158, 60);
-        $pdf->SetY(34.6);
-        $pdf->SetX(158);
-        $pdf->Cell(15, 8, $date, 0, 'R');
-        // certificatehead
-        $pdf->SetY(44.6);
-        $pdf->SetX(70);
-        $pdf->SetFont('Arial', 'B', 13);
-        $pdf->Cell(15, 8, $certificatehead, 0, 'R');
-        $pdf->SetFont('Arial', '', 11);
-        // certificatehead
-        $pdf->SetY(55);
-        $pdf->Ln(5);
-        $pdf->SetX(20);
-        $pdf->multiCell(170, 8, strip_tags($offerEmailFormat), 5);
-        $pdf->SetX(20);
-        $pdf->Cell(30, 18, "Warm Regards");
-
-        $x = $pdf->GetY();
-        $pdf->Image(base_url() . '/uploads/signature/' . $empsing . '', 8, $x + 5, 60);
-
-        $pdf->SetX(20);
-        $pdf->Cell(30, 70, $emp_name);
-        $pdf->SetX(20);
-        $pdf->Cell(30, 80, $des_name);
-        $path = 'certificate/' . rand() . '.pdf';
-        $pdf->Output($path, 'F');
-        return $path;
-        $this->load->view('view_offer_letter');
+ 
+    // ── Convert HTML → clean plain text ─────────────────
+    $rawHtml = (string) ($internemailData['certificate_email'] ?? '');
+ 
+    // Double <br> → 2 newlines, single <br> → 1 newline
+    $rawHtml = preg_replace('/(<br\s*\/?>){2,}/i', "\n\n", $rawHtml);
+    $rawHtml = str_replace(["<br/>","<br>","<br />","</p>","</div>","</li>"], "\n", $rawHtml);
+    $rawHtml = str_replace("&nbsp;", " ", $rawHtml);
+    $text    = strip_tags($rawHtml);
+    $text    = preg_replace('/[\t ]+/', ' ', $text);         // collapse spaces
+    $text    = preg_replace('/\n{3,}/', "\n\n", $text);      // max 2 blank lines
+    $text    = trim($text);
+    $text = $this->certificate_html_to_text((string) ($internemailData['certificate_email'] ?? ''));
+ 
+    $date           = date('d-m-Y');
+    $certificatehead = "TO WHOM IT MAY CONCERN";
+ 
+    // ── Constants ────────────────────────────────────────
+    $LEFT   = 20;   // left margin  (mm)
+    $RIGHT  = 20;   // right margin (mm)
+    $PW     = 210;  // A4 page width
+    $PH     = 297;  // A4 page height
+    $CW     = $PW - $LEFT - $RIGHT;  // content width = 170mm
+    $LH     = 6;    // line height for body text
+ 
+    // ── FPDF setup ───────────────────────────────────────
+    $pdf = new FPDF('P', 'mm', 'A4');
+    $pdf->AddPage();
+ 
+    // ✅ FIX 1: Equal margins from both sides
+    $pdf->SetMargins($LEFT, 15, $RIGHT);
+    $pdf->SetAutoPageBreak(true, 20);
+ 
+    // ✅ FIX 2: Background image — full A4 coverage (x=0, y=0)
+    $bgPath = $_SERVER['DOCUMENT_ROOT'] . '/uploads/MumbaiOffice_certificate.png';
+    if (file_exists($bgPath)) {
+        $pdf->Image($bgPath, 0, 0, $PW, $PH);
+    } else {
+        // fallback: base_url version
+        $pdf->Image(base_url() . '/uploads/MumbaiOffice_certificate.png', 0, 0, $PW, $PH);
     }
+ 
+    // ── Date — right aligned ─────────────────────────────
+    // ✅ FIX 3: Full content width cell, right aligned
+    $pdf->SetFont('Arial', '', 10);
+    $pdf->SetXY($LEFT, 35);
+    $pdf->Cell($CW, 6, $date, 0, 1, 'R');   // 'R' = right align, full width
+ 
+    // ── Heading — centered ───────────────────────────────
+    // ✅ FIX 4: Full width cell, centered
+    $pdf->SetFont('Arial', 'B', 13);
+    $pdf->SetXY($LEFT, 45);
+    $pdf->Cell($CW, 8, $certificatehead, 0, 1, 'C');   // 'C' = center
+ 
+    // ── Body text — JUSTIFIED ────────────────────────────
+    // ✅ FIX 5: MultiCell with 'J' = justified both sides
+    $pdf->SetFont('Arial', '', 11);
+    $pdf->SetXY($LEFT, 57);
+    $pdf->MultiCell($CW, $LH, $text, 0, 'J');
+ 
+    // cursor position after body text
+    $bodyEndY = $pdf->GetY();
+ 
+    // ── Signature block ──────────────────────────────────
+    // ✅ FIX 6: Everything starts at X=$LEFT (20mm)
+    $sigW    = 50;   // signature image width
+    $sigH    = 25;   // signature image height
+    $gap     = 8;    // gap between text and signature
+    $sigTopY = $bodyEndY + $gap;
+ 
+    $signaturePath = $_SERVER['DOCUMENT_ROOT'] . '/uploads/signature/' . $empsing;
+ 
+    // "Warm Regards" line
+    $pdf->SetFont('Arial', '', 11);
+    $pdf->SetXY($LEFT, $bodyEndY + 4);
+    $pdf->Cell($CW, 6, 'Warm Regards,', 0, 1, 'L');
+ 
+    if (file_exists($signaturePath)) {
+        // ✅ Signature image — starts at LEFT margin
+        $pdf->Image($signaturePath, $LEFT, $sigTopY, $sigW, $sigH);
+ 
+        $afterSigY = $sigTopY + $sigH + 2;
+ 
+        // Employee name — bold, left aligned at margin
+        $pdf->SetFont('Arial', 'B', 11);
+        $pdf->SetXY($LEFT, $afterSigY);
+        $pdf->Cell(100, 6, $emp_name, 0, 1, 'L');
+ 
+        // Designation — normal, left aligned at margin
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->SetXY($LEFT, $afterSigY + 7);
+        $pdf->Cell(100, 6, $des_name, 0, 1, 'L');
+ 
+    } else {
+        // No signature fallback
+        $pdf->SetFont('Arial', 'I', 10);
+        $pdf->SetXY($LEFT, $sigTopY);
+        $pdf->Cell(100, 8, '[Signature not available]', 0, 1, 'L');
+ 
+        $pdf->SetFont('Arial', 'B', 11);
+        $pdf->SetXY($LEFT, $sigTopY + 12);
+        $pdf->Cell(100, 6, $emp_name, 0, 1, 'L');
+ 
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->SetXY($LEFT, $sigTopY + 20);
+        $pdf->Cell(100, 6, $des_name, 0, 1, 'L');
+    }
+ 
+    // ── Output PDF ───────────────────────────────────────
+    $pdf->Output('I', 'certificate.pdf');  // 'I' = browser mein open
+}
 
+
+  public function send_certificate_letter($internemailData)
+{
+    $emp_id = $this->session->userdata('emp_id');
+    $where1 = "emp_id = $emp_id";
+    $data['empSing'] = $this->Admin_model->get_employye_details($where1);
+    $empsing  = $data['empSing']['signature'];
+ 
+    if (empty($empsing)) {
+        echo "<script>alert('Signature not updated. Please contact Admin.');</script>";
+        return false;
+    }
+ 
+    $emp_name = $data['empSing']['emp_name'];
+    $des_name = $data['empSing']['des_name'];
+ 
+    // ── Convert HTML → plain text ────────────────────────
+    $rawHtml = (string) ($internemailData['certificate_email'] ?? '');
+    $rawHtml = preg_replace('/(<br\s*\/?>){2,}/i', "\n\n", $rawHtml);
+    $rawHtml = str_replace(["<br/>","<br>","<br />","</p>","</div>","</li>"], "\n", $rawHtml);
+    $rawHtml = str_replace("&nbsp;", " ", $rawHtml);
+    $text    = strip_tags($rawHtml);
+    $text    = preg_replace('/[\t ]+/', ' ', $text);
+    $text    = preg_replace('/\n{3,}/', "\n\n", $text);
+    $text    = trim($text);
+    $text = $this->certificate_html_to_text((string) ($internemailData['certificate_email'] ?? ''));
+ 
+    $date            = date('d-m-Y');
+    $certificatehead = "TO WHOM IT MAY CONCERN";
+ 
+    // ── Constants ───────────────────────────────────────
+    $LEFT = 20; $RIGHT = 20;
+    $PW   = 210; $PH = 297;
+    $CW   = $PW - $LEFT - $RIGHT;  // 170mm
+    $LH   = 6;
+ 
+    // ── FPDF ────────────────────────────────────────────
+    $pdf = new FPDF('P', 'mm', 'A4');
+    $pdf->AddPage();
+    $pdf->SetMargins($LEFT, 15, $RIGHT);
+    $pdf->SetAutoPageBreak(true, 20);
+ 
+    // Background
+    $bgPath = $_SERVER['DOCUMENT_ROOT'] . '/uploads/MumbaiOffice_certificate.png';
+    if (file_exists($bgPath)) {
+        $pdf->Image($bgPath, 0, 0, $PW, $PH);
+    }
+ 
+    // Date — right
+    $pdf->SetFont('Arial', '', 10);
+    $pdf->SetXY($LEFT, 35);
+    $pdf->Cell($CW, 6, $date, 0, 1, 'R');
+ 
+    // Heading — center
+    $pdf->SetFont('Arial', 'B', 13);
+    $pdf->SetXY($LEFT, 45);
+    $pdf->Cell($CW, 8, $certificatehead, 0, 1, 'C');
+ 
+    // Body — justified
+    $pdf->SetFont('Arial', '', 11);
+    $pdf->SetXY($LEFT, 57);
+    $pdf->MultiCell($CW, $LH, $text, 0, 'J');
+ 
+    $bodyEndY = $pdf->GetY();
+ 
+    $sigTopY  = $bodyEndY + 8;
+    $sigW     = 50;
+    $sigH     = 25;
+ 
+    // Warm Regards
+    $pdf->SetFont('Arial', '', 11);
+    $pdf->SetXY($LEFT, $bodyEndY + 4);
+    $pdf->Cell($CW, 6, 'Warm Regards,', 0, 1, 'L');
+ 
+    $signaturePath = $_SERVER['DOCUMENT_ROOT'] . '/uploads/signature/' . $empsing;
+ 
+    if (file_exists($signaturePath)) {
+        $pdf->Image($signaturePath, $LEFT, $sigTopY, $sigW, $sigH);
+        $afterSigY = $sigTopY + $sigH + 2;
+ 
+        $pdf->SetFont('Arial', 'B', 11);
+        $pdf->SetXY($LEFT, $afterSigY);
+        $pdf->Cell(100, 6, $emp_name, 0, 1, 'L');
+ 
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->SetXY($LEFT, $afterSigY + 7);
+        $pdf->Cell(100, 6, $des_name, 0, 1, 'L');
+    } else {
+        $pdf->SetFont('Arial', 'I', 10);
+        $pdf->SetXY($LEFT, $sigTopY);
+        $pdf->Cell(100, 8, '[Signature not available]', 0, 1, 'L');
+ 
+        $pdf->SetFont('Arial', 'B', 11);
+        $pdf->SetXY($LEFT, $sigTopY + 12);
+        $pdf->Cell(100, 6, $emp_name, 0, 1, 'L');
+ 
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->SetXY($LEFT, $sigTopY + 20);
+        $pdf->Cell(100, 6, $des_name, 0, 1, 'L');
+    }
+ 
+    $path = 'certificate/' . rand() . '.pdf';
+    $pdf->Output($path, 'F');
+    return $path;
+}
+ 
     public function send_certificate_on_mail()
     {
         $intern_id_encoded = $this->uri->segment(2);
@@ -611,14 +757,14 @@ class Admin_new extends MY_Controller
         $mail->Subject = 'CRY Internship completion Certificate';
         // $mail->Body = 'Certificate';
         $mail->Body = $this->load->view('admin/certificate', $data, TRUE);
-		 $this->Admin_model->sent_certificate_to_intern($intern_id,$att);
+        $this->Admin_model->sent_certificate_to_intern($intern_id, $att);
         if (!$mail->Send()) {
             echo "Message could not be sent. <p>";
             echo "Mailer Error: " . $mail->ErrorInfo;
         } else {
 
             $this->Admin_model->certificate_send($intern_id);
-            $this->Admin_model->sent_certificate_to_intern($intern_id,$att);
+            $this->Admin_model->sent_certificate_to_intern($intern_id, $att);
             //  $this->Admin_model->count_send_mail($val);
             redirect(base_url() . 'intern-request-certificate');
         }

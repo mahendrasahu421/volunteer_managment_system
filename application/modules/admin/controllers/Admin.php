@@ -30,7 +30,7 @@ class Admin extends MY_Controller
         date_default_timezone_set('Asia/Kolkata');
     }
 
-    public function dashboard()
+      public function dashboard()
     {
         try {
             if (($this->session->userdata('emp_id') != "" || $this->session->userdata('emp_id') != null)) {
@@ -274,7 +274,6 @@ class Admin extends MY_Controller
             echo 'Caught exception: ', $e->getMessage(), "\n";
         }
     }
-
 
     public function interninsert_add_task()
     {
@@ -1406,7 +1405,7 @@ class Admin extends MY_Controller
         <?php
     }
 
-    public function report()
+ public function report()
     {
         $sr_id = $this->input->post('sr_id');
         $encode_userID = $this->input->post('intern_id');
@@ -2090,7 +2089,7 @@ class Admin extends MY_Controller
                     <div class="col-4 "><b></b>Phone</div>
                     <div class="col"><?php echo $volunteerDetails[0]['mobile']; ?></div>
                 </div>
-                <div class="row mb-2">
+				  <div class="row mb-2">
                     <div class="col-6"><b>Gender</b></div>
                     <div class="col">
                         <?php
@@ -2224,7 +2223,7 @@ class Admin extends MY_Controller
             $join_data = array(
                 array(
                     'table' => 'interns',
-                    'fields' => array('intern_id', 'gender', 'internshipType', 'internshipDeruation', 'first_name', 'last_name', 'mobile', 'email', 'date_of_birth', 'where_did_u_know', 'other_opportunity', 'country_id', 'state_id', 'city_id', 'occupation_id', 'past_volunteering', 'what_you_aim', 'status', 'skill_id', 'internshipDeruation', 'cv_file'),
+                    'fields' => array('intern_id','gender', 'internshipType', 'internshipDeruation', 'first_name', 'last_name', 'mobile', 'email', 'date_of_birth', 'where_did_u_know', 'other_opportunity', 'country_id', 'state_id', 'city_id', 'occupation_id', 'past_volunteering', 'what_you_aim', 'status', 'skill_id', 'internshipDeruation', 'cv_file'),
                     'joinWith' => array('intern_id'),
                     'where' => array(
                         'intern_id' => $intern_id
@@ -2302,7 +2301,7 @@ class Admin extends MY_Controller
                     <div class="col-6"><b>Phone</b></div>
                     <div class="col"><?php echo $internDetails[0]['mobile']; ?></div>
                 </div>
-                <div class="row mb-2">
+				<div class="row mb-2">
                     <div class="col-6"><b>Gender</b></div>
                     <div class="col">
                         <?php
@@ -5227,6 +5226,146 @@ class Admin extends MY_Controller
     }
 
 
+    private function applied_candidates_date_where($fromDate, $toDate)
+    {
+        return "((i.creation_date>='" . $fromDate . "' AND i.creation_date<='" . $toDate . "') OR (i.modification_date>='" . $fromDate . "' AND i.modification_date<='" . $toDate . "'))";
+    }
+
+    private function applied_candidates_state_ids($regionId)
+    {
+        $states = $this->Crud_modal->all_data_select('state_id', 'states', "region_id='" . (int) $regionId . "'", 'state_name ASC');
+        $stateIds = array_map('intval', array_column($states, 'state_id'));
+        return implode(',', $stateIds);
+    }
+
+    private function applied_candidates_filter_where($includeDate = true)
+    {
+        $role = (int) $this->session->userdata('role_id');
+        $sessionRegion = (int) $this->session->userdata('region_id');
+        $regionId = $this->input->post('region_id');
+        $stateName = $this->input->post('state_name');
+        $candidateStatus = $this->input->post('candidate_staus') !== null ? $this->input->post('candidate_staus') : $this->input->post('candidate_status');
+        $startDate = $this->input->post('start_new');
+        $endDate = $this->input->post('end_new');
+
+        $where = array();
+        if ($includeDate) {
+            $dateFrom = $startDate != '' ? date("Y-m-d", strtotime($startDate)) : date("Y-m-d", strtotime('-7 days'));
+            $dateTo = $endDate != '' ? date("Y-m-d", strtotime($endDate)) : date("Y-m-d");
+            $where[] = $this->applied_candidates_date_where($dateFrom, $dateTo);
+        }
+
+        if ($role != 1 && ($regionId === null || $regionId === '' || $regionId == '99')) {
+            $regionId = $sessionRegion;
+        }
+
+        if ($stateName !== null && $stateName !== '') {
+            $where[] = "i.state_id=" . (int) $stateName;
+        } else if ($regionId !== null && $regionId !== '' && !($role == 1 && $regionId == '99')) {
+            $stateIds = $this->applied_candidates_state_ids($regionId);
+            $where[] = $stateIds != '' ? "i.state_id IN ($stateIds)" : "i.state_id=0";
+        }
+
+        if ($candidateStatus !== null && $candidateStatus !== '') {
+            $where[] = "i.status=" . (int) $candidateStatus;
+        } else if ($regionId == '99' && $role == 1) {
+            $where[] = "i.status!=99";
+        } else if ($role != 1) {
+            $where[] = "i.status >= 1 AND i.status <= 8";
+        } else if ($regionId !== null && $regionId !== '') {
+            $where[] = "i.status != 8";
+        }
+
+        return implode(' AND ', $where);
+    }
+
+    private function applied_candidates_status_text($status)
+    {
+        ob_start();
+        $this->Admin_model->check_status($status);
+        return trim(ob_get_clean());
+    }
+
+    private function applied_candidates_escape($value)
+    {
+        return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+    }
+
+    public function applied_candidates_list()
+    {
+        if (($this->session->userdata('emp_id') == "" && $this->session->userdata('emp_id') == null)) {
+            $this->output->set_status_header(401);
+            $this->output->set_content_type('application/json')->set_output(json_encode(array(
+                'draw' => (int) $this->input->post('draw'),
+                'recordsTotal' => 0,
+                'recordsFiltered' => 0,
+                'data' => array()
+            )));
+            return;
+        }
+
+        $draw = (int) $this->input->post('draw');
+        $start = max(0, (int) $this->input->post('start'));
+        $length = (int) $this->input->post('length');
+        $length = $length > 0 && $length <= 100 ? $length : 10;
+        $searchData = $this->input->post('search');
+        $search = is_array($searchData) && isset($searchData['value']) ? trim($searchData['value']) : '';
+        $where = $this->applied_candidates_filter_where($search == '');
+        $orderColumns = array(
+            1 => 'i.creation_date',
+            2 => 'i.first_name',
+            3 => 'i.email',
+            4 => 'i.mobile',
+            5 => 'is.skill_name',
+            6 => 's.state_name',
+            7 => 'c.city_name',
+            9 => 'i.status'
+        );
+        $order = $this->input->post('order');
+        $orderColumn = 'i.intern_id';
+        $orderDir = 'DESC';
+        if (is_array($order) && isset($order[0]['column']) && isset($orderColumns[(int) $order[0]['column']])) {
+            $orderColumn = $orderColumns[(int) $order[0]['column']];
+            $orderDir = isset($order[0]['dir']) && strtolower($order[0]['dir']) == 'asc' ? 'ASC' : 'DESC';
+        }
+
+        $recordsTotal = $this->Admin_model->intern_enquiry_Data_count($where);
+        $recordsFiltered = $search != '' ? $this->Admin_model->intern_enquiry_Data_count($where, $search) : $recordsTotal;
+        $interns = $this->Admin_model->intern_enquiry_Data_paginated($where, $length, $start, $search, $orderColumn, $orderDir);
+        $rows = array();
+        $count = $start + 1;
+        foreach ($interns as $internData) {
+            $internId = $internData['intern_id'];
+            $encodedId = rtrim(strtr(base64_encode($internId), '+/', '-_'), '=');
+            $name = $this->applied_candidates_escape(ucwords(trim($internData['first_name'] . ' ' . $internData['last_name'])));
+            $profile = $name . '<br><a href="#" data-toggle="modal" data-target=".profile-details" onclick="fetch_details(\'' . $encodedId . '\',\'profile_details\');"><small class="text-primary">(View Profile)</small></a>';
+            $cv = '<span><a href="#">NA</a></span>';
+            if (!empty($internData['cv_file'])) {
+                $cv = '<span><a href="' . $this->applied_candidates_escape(base_url('uploads/' . $internData['cv_file'])) . '" target="_blank">View CV</a></span>';
+            }
+            $status = $this->applied_candidates_escape($this->applied_candidates_status_text($internData['status']));
+            $rows[] = array(
+                $count++,
+                !empty($internData['creation_date']) ? date('d-m-Y', strtotime($internData['creation_date'])) : '',
+                $profile,
+                $this->applied_candidates_escape($internData['email']),
+                $this->applied_candidates_escape($internData['mobile']),
+                $this->applied_candidates_escape($internData['skill_name']),
+                $this->applied_candidates_escape($internData['state_name']),
+                $this->applied_candidates_escape($internData['city_name']),
+                $cv,
+                '<a href="' . base_url('hr-process/' . $encodedId) . '" class="badge rounded-pill bg-info me-1 mb-1 mt-1">' . $status . '</a>'
+            );
+        }
+
+        $this->output->set_content_type('application/json')->set_output(json_encode(array(
+            'draw' => $draw,
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data' => $rows
+        )));
+    }
+
     public function applied_candidates()
     {
         try {
@@ -5234,179 +5373,15 @@ class Admin extends MY_Controller
                 $this->session->set_userdata($this->input->post());
                 $data['regionData'] = $region = $this->session->userdata('region_id');
                 $role = $this->session->userdata('role_id');
+                $date2 = $data['date_to'] = date("Y-m-d");
+                $data['date_from'] = date("Y-m-d", strtotime($date2 . '-7 days'));
+                $data['state'] = '';
+                $data['intern'] = array();
                 if ($role == 1) {
-                    $date2 = $data['date_to'] = date("Y-m-d");
-                    $data['date_from'] = date("Y-m-d", strtotime($date2 . '-7 days'));
-                    if ($this->input->post('start_new') != "" && $this->input->post('end_new') != "" && $this->input->post('state_name') != "" && $this->input->post('candidate_status') != "") {
-                        $date1 = $this->input->post('start_new');
-                        $date2 = $this->input->post('end_new');
-                        $state_name = $this->input->post('state_name');
-                        $candidate_status = $this->input->post('candidate_status');
-                        $data['date_from'] = $date_from = date("Y-m-d", strtotime($date1));
-                        $data['date_to'] = $date_to = date("Y-m-d", strtotime($date2));
-                        $data['creation_date'] = $date1;
-                        $data['creation_date'] = $date2;
-                        $data['state_name'] = $state_name;
-                        $data['candidate_status'] = $candidate_status;
-                        $where = "creation_date>='" . $date_from . "' and creation_date<='" . $date_to . "' and i.state_id=" . $state_name . "  AND i.status=" . $candidate_status . "";
-                        $data['intern'] = $this->Admin_model->intern_enquiry_Data($where);
-                    } else if ($this->input->post('start_new') != "" && $this->input->post('end_new') != "" && $this->input->post('state_name') != "") {
-                        $date1 = $this->input->post('start_new');
-                        $date2 = $this->input->post('end_new');
-                        $state_name = $this->input->post('state_name');
-                        $candidate_status = $this->input->post('candidate_status');
-                        $data['date_from'] = $date_from = date("Y-m-d", strtotime($date1));
-                        $data['date_to'] = $date_to = date("Y-m-d", strtotime($date2));
-                        $data['creation_date'] = $date1;
-                        $data['creation_date'] = $date2;
-                        $data['state_name'] = $state_name;
-                        $data['candidate_status'] = $candidate_status;
-                        $where = "creation_date>='" . $date_from . "' and creation_date<='" . $date_to . "' and i.state_id=" . $state_name . "";
-                        $data['intern'] = $this->Admin_model->intern_enquiry_Data($where);
-                    } else if ($this->input->post('candidate_staus') != "") {
-                        $candidate_staus = $this->input->post('candidate_staus');
-                        $date1 = $this->input->post('start_new');
-                        $date2 = $this->input->post('end_new');
-
-                        $candidate_status = $this->input->post('candidate_status');
-                        $data['date_from'] = $date_from = date("Y-m-d", strtotime($date1));
-                        $data['date_to'] = $date_to = date("Y-m-d", strtotime($date2));
-                        $data['creation_date'] = $date1;
-                        $data['creation_date'] = $date2;
-                        $data['candidate_staus'] = $candidate_staus;
-                        $where = "creation_date>='" . $date_from . "' and creation_date<='" . $date_to . "' and i.status=" . $candidate_staus . "";
-                        $data['intern'] = $this->Admin_model->intern_enquiry_Data($where);
-                    } else if ($this->input->post('region_id') != "") {
-                        $regionId = $this->input->post('region_id');
-                        if ($regionId == '99') {
-                            $date1 = $this->input->post('start_new');
-                            $date2 = $this->input->post('end_new');
-                            $data['date_from'] = $date_from = date("Y-m-d", strtotime($date1));
-                            $data['date_to'] = $date_to = date("Y-m-d", strtotime($date2));
-                            $data['creation_date'] = $date1;
-                            $data['creation_date'] = $date2;
-                            $where = "creation_date>='" . $date_from . "' and creation_date<='" . $date_to . "' AND i.status!=99";
-                            $data['intern'] = $this->Admin_model->intern_enquiry_Data($where);
-                        } else {
-                            $regionId = $this->input->post('region_id');
-                            $states = $this->Crud_modal->all_data_select(
-                                'state_id',
-                                'states',
-                                "region_id='$regionId'",
-                                'state_name ASC'
-                            );
-                            $stateIds = '"' . implode('","', array_column($states, 'state_id')) . '"';
-                            $date1 = $this->input->post('start_new');
-                            $date2 = $this->input->post('end_new');
-                            $data['date_from'] = $date_from = date("Y-m-d", strtotime($date1));
-                            $data['date_to'] = $date_to = date("Y-m-d", strtotime($date2));
-                            $data['creation_date'] = $date1;
-                            $data['creation_date'] = $date2;
-                            $where = "creation_date>='" . $date_from . "' AND creation_date<='" . $date_to . "' AND i.state_id IN ($stateIds)  AND i.status != 8";
-                            $data['intern'] = $this->Admin_model->intern_enquiry_Data($where);
-                        }
-                    } else if ($this->input->post('start_new') != "" && $this->input->post('end_new') != "" && $this->input->post('state_name') != "") {
-                        $state_name = $this->input->post('state_name');
-                        $toDate = date('Y-m-d');
-                        $fromDate = date('Y-m-d', strtotime('-15 days'));
-                        $data['state_name'] = $state_name;
-                        $data['start_new'] = $toDate;
-                        $data['end_new'] = $fromDate;
-                        $toDate = date('Y-m-d', strtotime($toDate . ' +1 day'));
-                        $where = 'i.creation_date >= "' . $fromDate . '" AND i.creation_date <= "' . $toDate . '" AND state_id = "' . $state_name . '"';
-                        $data['intern'] = $this->Admin_model->intern_enquiry_Data($where);
-                    } else {
-                        $toDate = date('Y-m-d');
-                        $fromDate = date('Y-m-d', strtotime('-15 days'));
-                        $data['start_new'] = $toDate;
-                        $data['end_new'] = $fromDate;
-                        $toDate = date('Y-m-d', strtotime($toDate . ' +1 day'));
-                        $where = 'i.creation_date >= "' . $fromDate . '" AND i.creation_date <= "' . $toDate . '"';
-                        $data['intern'] = $this->Admin_model->intern_enquiry_Data($where);
-                    }
+                    $data['states'] = $this->Crud_modal->fetch_all_data('*', 'states', 'status=1');
                 } else {
                     $data['rname'] = $this->Curl_model->fetch_single_data('region_name,state_id', 'regions', array('region_id' => $region));
                     $data['states'] = $this->Crud_modal->fetch_all_data('*', 'states', 'region_id=' . $region);
-                    $date2 = $data['date_to'] = date("Y-m-d");
-                    $data['date_from'] = date("Y-m-d", strtotime($date2 . '-7 days'));
-
-                    if ($this->input->post('start_new') != "" && $this->input->post('end_new') != "" && $this->input->post('state_name') != "" && $this->input->post('candidate_status') != "") {
-                        $date1 = date("Y-m-d", strtotime($this->input->post('start_new')));
-                        $date2 = $this->input->post('end_new');
-                        $state_name = $this->input->post('state_name');
-                        $candidate_status = $this->input->post('candidate_status');
-                        $data['date_from'] = $date_from = date("Y-m-d", strtotime($date1));
-                        $data['date_to'] = $date_to = date("Y-m-d", strtotime($date2));
-                        $data['creation_date'] = $date1;
-                        $data['creation_date'] = $date2;
-                        $data['state_name'] = $state_name;
-                        $data['candidate_status'] = $candidate_status;
-                        $where = "creation_date>='" . $date_from . "' and creation_date<='" . $date_to . "' and i.state_id=" . $state_name . "  AND i.status=" . $candidate_status . "";
-                        $data['intern'] = $this->Admin_model->intern_enquiry_Data($where);
-                    } else if ($this->input->post('candidate_staus') != "" && $this->input->post('state_name') != "") {
-
-                        $candidate_staus = $this->input->post('candidate_staus');
-                        $state_name = $this->input->post('state_name');
-                        $date1 = $this->input->post('start_new');
-                        $date2 = $this->input->post('end_new');
-                        $data['date_from'] = $date_from = date("Y-m-d", strtotime($date1));
-                        $data['date_to'] = $date_to = date("Y-m-d", strtotime($date2));
-                        $data['creation_date'] = $date1;
-                        $data['creation_date'] = $date2;
-                        $data['state_name'] = $state_name;
-                        $where = "creation_date>='" . $date_from . "' AND creation_date<='" . $date_to . "' AND i.state_id = $state_name  AND i.status= $candidate_staus";
-                        $data['intern'] = $this->Admin_model->intern_enquiry_Data($where);
-                    } else if ($this->input->post('start_new') != "" && $this->input->post('end_new') != "" && $this->input->post('state_name') != "") {
-                        $date1 = date("Y-m-d", strtotime($this->input->post('start_new')));
-                        $date2 = $this->input->post('end_new');
-                        $state_name = $this->input->post('state_name');
-                        $data['date_from'] = $date_from = date("Y-m-d", strtotime($date1));
-                        $data['date_to'] = $date_to = date("Y-m-d", strtotime($date2));
-                        $data['creation_date'] = $date1;
-                        $data['creation_date'] = $date2;
-                        $data['state_name'] = $state_name;
-                        $where = "creation_date>='" . $date_from . "' and creation_date<='" . $date_to . "' and i.state_id=" . $state_name . "";
-                        $data['intern'] = $this->Admin_model->intern_enquiry_Data($where);
-                    } else if ($this->input->post('region_id') != "" && $this->input->post('candidate_staus') != "") {
-                        $regionId = $this->input->post('region_id');
-                        $candidate_staus = $this->input->post('candidate_staus');
-                        $states = $this->Crud_modal->all_data_select('state_id', 'states', "region_id='$regionId'", 'state_name ASC');
-                        $stateIds = '"' . implode('","', array_column($states, 'state_id')) . '"';
-                        $date1 = $this->input->post('start_new');
-                        $date2 = $this->input->post('end_new');
-                        $data['date_from'] = $date_from = date("Y-m-d", strtotime($date1));
-                        $data['date_to'] = $date_to = date("Y-m-d", strtotime($date2));
-                        $data['creation_date'] = $date1;
-                        $data['creation_date'] = $date2;
-                        $where = "creation_date>='" . $date_from . "' AND creation_date<='" . $date_to . "' AND i.state_id IN ($stateIds)  AND i.status= $candidate_staus";
-                        $data['intern'] = $this->Admin_model->intern_enquiry_Data($where);
-                    } else if ($this->input->post('region_id') != "") {
-                        $regionId = $this->input->post('region_id');
-                        $states = $this->Crud_modal->all_data_select('state_id', 'states', "region_id='$regionId'", 'state_name ASC');
-                        $stateIds = '"' . implode('","', array_column($states, 'state_id')) . '"';
-                        $date1 = $this->input->post('start_new');
-                        $date2 = $this->input->post('end_new');
-                        $data['date_from'] = $date_from = date("Y-m-d", strtotime($date1));
-                        $data['date_to'] = $date_to = date("Y-m-d", strtotime($date2));
-                        $data['creation_date'] = $date1;
-                        $data['creation_date'] = $date2;
-                        $where = "creation_date>='" . $date_from . "' AND creation_date<='" . $date_to . "' AND i.state_id IN ($stateIds)  AND i.status >= 1 AND i.status <= 8";
-                        $data['intern'] = $this->Admin_model->intern_enquiry_Data($where);
-                    } else {
-                        $data['regionData'] = $region = $this->session->userdata('region_id');
-                        $regionId = $data['regionData'];
-                        $toDate = $this->input->post('Udate_to');
-                        $fromDate = $this->input->post('Udate_form');
-                        $states = $this->Crud_modal->all_data_select('state_id', 'states', "region_id='$regionId'", 'state_name ASC');
-                        $stateIds = '"' . implode('","', array_column($states, 'state_id')) . '"';
-                        $toDate = date('Y-m-d');
-                        $fromDate = date('Y-m-d', strtotime('-30 days'));
-                        $data['toDate'] = $toDate;
-                        $data['fromDate'] = $fromDate;
-                        $toDate = date('Y-m-d', strtotime($toDate . ' +1 day'));
-                        $where = "creation_date>='" . $fromDate . "' AND creation_date<='" . $toDate . "' AND i.state_id IN ($stateIds)  AND i.status >= 1 AND i.status <= 8";
-                        $data['intern'] = $this->Admin_model->intern_enquiry_Data($where);
-                    }
                 }
                 $data['regions'] = $this->Crud_modal->fetch_all_data('*', 'regions', 'region_status=1');
                 $this->load->view('temp/head');
@@ -5983,7 +5958,7 @@ class Admin extends MY_Controller
 
     function get_city()
     {
-        $stat = $this->input->post('state_name');
+       $stat = $this->input->post('state_name');
         $citys = $this->Crud_modal->all_data_select('*', 'cities', "state_id='$stat'", 'city_name ASC');
         echo '<option value="">---Select District---</option>';
         foreach ($citys as $city) {
@@ -7043,7 +7018,7 @@ class Admin extends MY_Controller
                     $val = base64_decode(str_pad(strtr($intern_id, '-_', '+/'), strlen($intern_id) % 4, '=', STR_PAD_RIGHT));
                     $where = 'i.intern_id = "' . $val . '"';
                     $data['feedbackData'] = $this->Admin_model->get_all_feedback($where);
-                    //echo "<pre>";
+                     //echo "<pre>";
                     // print_r($data['feedbackData']);exit;
                 } else {
                     $region = $this->session->userdata('region_id');
@@ -7768,20 +7743,20 @@ class Admin extends MY_Controller
         $this->load->view('temp/sidebar');
         $this->load->view('admin-profile', $data);
         $this->load->view('temp/footer');
-
+        
     }
 
     public function change_pwd()
     {
-        try {
+         try {
             if (($this->session->userdata('emp_id') != "" || $this->session->userdata('emp_id') != null)) {
-                $empId = $this->session->userdata('emp_id');
-                $this->load->view('temp/head');
-                $this->load->view('temp/header');
-                $this->load->view('temp/sidebar');
-                $this->load->view('change-password');
-                $this->load->view('temp/footer');
-            } else {
+        $empId = $this->session->userdata('emp_id');
+        $this->load->view('temp/head');
+        $this->load->view('temp/header');
+        $this->load->view('temp/sidebar');
+        $this->load->view('change-password');
+        $this->load->view('temp/footer');
+        } else {
                 redirect(base_url() . 'login', 'refresh');
             }
         } catch (Exception $e) {
@@ -7790,42 +7765,42 @@ class Admin extends MY_Controller
     }
 
     public function update_password()
-    {
-        try {
+{
+    try {
             if (($this->session->userdata('emp_id') != "" || $this->session->userdata('emp_id') != null)) {
-                $old_password = $this->input->post('old_password');
-                $new_password = $this->input->post('new_password');
-                $confirm_password = $this->input->post('confirm_password');
+    $old_password     = $this->input->post('old_password');
+    $new_password     = $this->input->post('new_password');
+    $confirm_password = $this->input->post('confirm_password');
 
-                // Validate passwords
-                if ($new_password !== $confirm_password) {
-                    $this->session->set_flashdata('error', 'New passwords do not match.');
-                    redirect('admin-change-pwd');
-                }
+    // Validate passwords
+    if ($new_password !== $confirm_password) {
+        $this->session->set_flashdata('error', 'New passwords do not match.');
+        redirect('admin-change-pwd');
+    }
 
-                $emp_id = $this->session->userdata('emp_id');
-                $user = $this->Admin_model->get_user_by_id($emp_id);
+    $emp_id = $this->session->userdata('emp_id');
+    $user   = $this->Admin_model->get_user_by_id($emp_id);
 
-                if (!$user || md5($old_password) !== $user->emp_password) {
-                    $this->session->set_flashdata('error', 'Current password is incorrect.');
-                    redirect('admin-change-pwd');
-                }
+    if (!$user || md5($old_password) !== $user->emp_password) {
+        $this->session->set_flashdata('error', 'Current password is incorrect.');
+        redirect('admin-change-pwd');
+    }
 
-                // Encrypt new password using MD5
-                $hashed_password = md5($new_password);
+    // Encrypt new password using MD5
+    $hashed_password = md5($new_password);
 
-                // Update password in DB
-                $this->Admin_model->update_password($emp_id, $hashed_password);
+    // Update password in DB
+    $this->Admin_model->update_password($emp_id, $hashed_password);
 
-                $this->session->set_flashdata('success', 'Password updated successfully.');
-                redirect('logout');
-            } else {
+    $this->session->set_flashdata('success', 'Password updated successfully.');
+    redirect('logout');
+      } else {
                 redirect(base_url() . 'login', 'refresh');
             }
         } catch (Exception $e) {
             echo 'Caught exception: ', $e->getMessage(), "\n";
         }
-    }
+}
 
 
 }

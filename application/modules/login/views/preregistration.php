@@ -87,6 +87,24 @@
     .select2-container .select2-selection--single {
         height: 3.375rem !important;
     }
+
+    /* Disabled button styling */
+    button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    /* File validation error styling */
+    .file-error {
+        color: red;
+        font-size: 12px;
+        margin-top: 5px;
+        display: block;
+    }
+
+    .is-invalid {
+        border-color: #dc3545 !important;
+    }
 </style>
 
 <body>
@@ -139,7 +157,7 @@
                                 enctype="multipart/form-data" novalidate>
                                 <section id="emailSection" style="display:block;">
                                     <div class="row">
-                                        <input type="hiddeLoginn" id="mailotp" name="cotp">
+                                        <input type="hidden" id="mailotp" name="cotp">
                                         <div class="form-group col-md-12 mb-0">
                                             <label for="looking_for">Looking for <sup class="fs-3"
                                                     style="color: red;">*</sup></label>
@@ -189,7 +207,7 @@
                                         <span id="countdown" class="mt-5 text-primary"></span>
 
                                         <div class="form-group col-md-12 mt-3">
-                                            <button type="button" class="btn btn-warning" id="genrateOTP">Genrate
+                                            <button type="button" class="btn btn-warning" id="genrateOTP">Generate
                                                 OTP</button>
                                         </div>
                                     </div>
@@ -395,14 +413,14 @@
                                                 style="color: red;">*</sup></label>
                                         <select class="form-control select2 form-select" name="internshipDeruation"
                                             data-placeholder="Internship Duration" id="internSkill_id">
-                                            <option selected disabled value=""> Select Internship Deruation</option>
+                                            <option selected disabled value=""> Select Internship Duration</option>
                                             <?php for ($i = 4; $i <= 12; $i++) {
                                                 if ($i % 2 === 0) { // check if the current number is even
                                                     echo '<option value="' . $i . '">' . $i . ' Weeks</option>';
                                                 }
                                             } ?>
                                         </select>
-                                        <div class="invalid-feedback">Please Select Deruation</div>
+                                        <div class="invalid-feedback">Please Select Duration</div>
                                     </div>
                                     <div class="form-group col-md-12 mb-0 select-dropdown1" id="">
                                         <label class="form-label fw-bold">Skills you posses <sup class="fs-3"
@@ -423,14 +441,13 @@
                                     <div class="form-group col-md-12 mb-0 select-dropdown1" id="">
                                         <div class="form-group" id="cv">
                                             <label class="form-label fw-bold">Upload Your CV <sup class="fs-3"
-                                                    style="color: red;">*</sup><small><b>(Only
-                                                        PDF)</b></small></label>
-                                            <input type="file" name="Uploade_file" id="file" class=" form-control"
-                                                accept=".pdf" onchange="return validate();" aria-label="file example"
-                                                required>
-                                            <span style="color: red;" id="file_error"><b></b></span>
+                                                    style="color: red;">*</sup><small><b>(Only PDF, Max
+                                                        2MB)</b></small></label>
+                                            <input type="file" name="Uploade_file" id="file" class="form-control"
+                                                accept=".pdf" aria-label="file example" required>
+                                            <span style="color: red; font-size: 12px; display: block; margin-top: 5px;"
+                                                id="file_error"></span>
                                         </div>
-                                        <!-- <span style="color:red"><b>PDF accept less then 2 Mb</b></span> -->
                                     </div>
 
 
@@ -461,25 +478,6 @@
                                         </button>
                                     </div>
 
-                                    <script>
-                                        document.getElementById("preregistration").addEventListener("click", function (event) {
-                                            // Prevent multiple form submissions
-                                            event.preventDefault(); // Stop form from submitting
-
-                                            // Disable the button and change text to "Submitting..."
-                                            this.disabled = true;
-                                            this.innerText = "Submitting...";
-
-                                            // Manually submit the form after disabling the button
-                                            setTimeout(function () {
-                                                // Trigger form submission manually
-                                                document.forms[0].submit();
-                                            }, 2000); // Adjust the delay as needed (2 seconds delay)
-                                        });
-                                    </script>
-
-
-
                                 </section>
                             </form>
                         </div>
@@ -488,6 +486,83 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // File validation - 2MB limit
+        document.getElementById('file').addEventListener('change', function (e) {
+            const file = this.files[0];
+            const errorSpan = document.getElementById('file_error');
+            const maxSize = 2 * 1024 * 1024; // 2MB in bytes
+
+            if (file) {
+                // Check file type
+                if (file.type !== 'application/pdf') {
+                    errorSpan.innerHTML = '❌ Only PDF files are allowed!';
+                    this.value = ''; // Clear the file input
+                    this.classList.add('is-invalid');
+                    return false;
+                }
+
+                // Check file size (2MB limit)
+                if (file.size > maxSize) {
+                    errorSpan.innerHTML = '❌ File size should not exceed 2MB! Your file size: ' + (file.size / 1024 / 1024).toFixed(2) + 'MB';
+                    this.value = ''; // Clear the file input
+                    this.classList.add('is-invalid');
+                    return false;
+                } else {
+                    errorSpan.innerHTML = '✓ File is valid (PDF, ' + (file.size / 1024).toFixed(2) + 'KB)';
+                    errorSpan.style.color = 'green';
+                    this.classList.remove('is-invalid');
+                    return true;
+                }
+            }
+        });
+    </script>
+
+    <script>
+        // Disable submit button on form submission to prevent double submission
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('sform');
+            const submitBtn = document.getElementById('preregistration');
+            const fileInput = document.getElementById('file');
+
+            if (form && submitBtn) {
+                form.addEventListener('submit', function (e) {
+                    // Check file size again before submission
+                    const file = fileInput.files[0];
+                    const maxSize = 2 * 1024 * 1024; // 2MB
+
+                    if (file) {
+                        if (file.size > maxSize) {
+                            e.preventDefault();
+                            document.getElementById('file_error').innerHTML = '❌ File size should not exceed 2MB!';
+                            document.getElementById('file_error').style.color = 'red';
+                            alert('Please upload a file smaller than 2MB');
+                            return false;
+                        }
+                        if (file.type !== 'application/pdf') {
+                            e.preventDefault();
+                            document.getElementById('file_error').innerHTML = '❌ Only PDF files are allowed!';
+                            document.getElementById('file_error').style.color = 'red';
+                            alert('Please upload only PDF files');
+                            return false;
+                        }
+                    }
+
+                    // Check if form is valid before disabling button
+                    if (form.checkValidity()) {
+                        // Disable the submit button
+                        submitBtn.disabled = true;
+                        // Change button text to show processing
+                        submitBtn.innerHTML = 'Submitting... <i class="fa fa-spinner fa-spin"></i>';
+                        submitBtn.style.opacity = '0.6';
+                        submitBtn.style.cursor = 'not-allowed';
+                    }
+                });
+            }
+        });
+    </script>
+
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6/jquery.min.js" type="text/javascript"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js" type="text/javascript"></script>
     <link href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css" rel="Stylesheet"
@@ -593,20 +668,24 @@
             $(".demoInputBox").css("border-color", "#F0F0F0");
             var fileInput = document.getElementById('file');
             var file = fileInput.files[0];
-            var fileSizeLimit = 15 * 1024 * 1024; // 15MB in bytes
+            var fileSizeLimit = 2 * 1024 * 1024; // 2MB in bytes
             if (!file) {
                 $("#file_error").html("Please select a file");
                 $(".demoInputBox").css("border-color", "red");
                 return false;
+            } else if (file.type !== 'application/pdf') {
+                fileInput.value = '';
+                $("#file_error").html("Only PDF files are allowed");
+                $('#file').attr('required', 'required');
+                $(".demoInputBox").css("border-color", "red");
+                return false;
             } else if (file.size > fileSizeLimit) {
                 fileInput.value = ''; // Clear the file input field
-                $("#file_error").html("File size should not exceed 15MB");
+                $("#file_error").html("File size should not exceed 2MB");
                 $('#file').attr('required', 'required');
                 $(".demoInputBox").css("border-color", "red");
                 return false;
             } else {
-                $('#file').addattr
-
                 return true;
             }
         }
@@ -817,21 +896,25 @@
             $(".demoInputBox").css("border-color", "#F0F0F0");
             var fileInput = document.getElementById('file');
             var file = fileInput.files[0];
-            var fileSizeLimit = 15 * 1024 * 1024; // 2MB in bytes
+            var fileSizeLimit = 2 * 1024 * 1024; // 2MB in bytes
 
             if (!file) {
                 $("#file_error").html("Please select a file");
                 $(".demoInputBox").css("border-color", "red");
                 return false;
+            } else if (file.type !== 'application/pdf') {
+                fileInput.value = '';
+                $("#file_error").html("Only PDF files are allowed");
+                $('#file').attr('required', 'required');
+                $(".demoInputBox").css("border-color", "red");
+                return false;
             } else if (file.size > fileSizeLimit) {
                 fileInput.value = ''; // Clear the file input field
-                $("#file_error").html("File size should not exceed 15MB");
+                $("#file_error").html("File size should not exceed 2MB");
                 $('#file').attr('required', 'required');
                 $(".demoInputBox").css("border-color", "red");
                 return false;
             } else {
-                $('#file').addattr
-
                 return true;
             }
         }
@@ -1104,17 +1187,6 @@
     <script src="<?php echo base_url('admin/'); ?>assets/plugins/bootstrap/js/popper.min.js"></script>
     <script src="<?php echo base_url('admin/'); ?>assets/plugins/bootstrap/js/bootstrap.min.js"></script>
 
-    <!-- SPARKLINE JS-->
-
-
-    <!-- CHART-CIRCLE JS-->
-
-
-    <!-- CHARTJS CHART JS-->
-
-
-    <!-- PIETY CHART JS-->
-
 
     <!-- INTERNAL SELECT2 JS -->
     <script src="<?php echo base_url('admin/'); ?>assets/plugins/select2/select2.full.min.js"></script>
@@ -1135,7 +1207,7 @@
     <script src="<?php echo base_url('admin/'); ?>assets/plugins/fancyuploder/fancy-uploader.js"></script>
 
     <!-- SELECT2 JS -->
-
+      
 
     <!-- BOOTSTRAP-DATERANGEPICKER JS -->
     <script src="<?php echo base_url('admin/'); ?>assets/plugins/bootstrap-daterangepicker/moment.min.js"></script>

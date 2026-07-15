@@ -1021,14 +1021,17 @@ class Login extends MY_Controller
     public function create_emailOtp()
     {
         $email = $this->input->post('VOLUNTEEREMAIL');
+        //print_r($email);exit;
         $length = 4;
         $to = $email;
         $keys = array_merge(range(0, 9), range(0, 9));
+        //print_r($keys);exit;
         $key = "";
         for ($i = 0; $i < $length; $i++) {
             $key .= $keys[mt_rand(0, count($keys) - 1)];
         }
-
+        print_r($key);
+        exit;
         echo $this->preregistration_sendMail($key, $to);
     }
 

@@ -19,82 +19,94 @@ class Intern extends MY_Controller
         date_default_timezone_set('Asia/Kolkata');
     }
     public function intern_login()
-    {
-        $res['email'] = "";
-        $res['password'] = "";
-        if ($this->input->post()) {
-            $res['email'] = $this->input->post('email');
-            $res['password'] = $this->input->post('password');
-            if ($this->input->post('signin') == 'signin') {
-                $rules_array = array(
-                    array(
-                        'field' => 'email',
-                        'label' => 'Email Address',
-                        'rules' => 'trim|required',
-                        'errors' => array(
-                            'required' => 'Enter Email Address.',
-                        ),
+{
+    $res['email'] = "";
+    $res['password'] = "";
+
+    if ($this->input->post()) {
+
+        $res['email'] = trim($this->input->post('email'));
+        $res['password'] = trim($this->input->post('password'));
+
+        if ($this->input->post('signin') == 'signin') {
+
+            $rules_array = array(
+                array(
+                    'field' => 'email',
+                    'label' => 'Email Address',
+                    'rules' => 'trim|required',
+                    'errors' => array(
+                        'required' => 'Enter Email Address.',
                     ),
-                    array(
-                        'field' => 'password',
-                        'label' => 'Password',
-                        'rules' => 'trim|required',
-                        'errors' => array(
-                            'required' => 'Enter Password',
-                        ),
+                ),
+                array(
+                    'field' => 'password',
+                    'label' => 'Password',
+                    'rules' => 'trim|required',
+                    'errors' => array(
+                        'required' => 'Enter Password.',
                     ),
-                );
+                ),
+            );
 
-                $this->form_validation->set_rules($rules_array);
-                if ($this->form_validation->run() == TRUE) {
-                    $email = $this->input->post('email');
-                    $password = $this->input->post('password');
-                    $fields = array(
-                        'password',
-                        'first_name',
-                        'intern_id',
-                        'state_id',
-                        'status',
-                    );
-                    $where = array(
-                        'email' => $email,
-                    );
-                    $limit = '';
-                    $order_by = '';
-                    $results = $this->Curl_model->fetch_data('interns', $fields, $where, $limit, $order_by);
+            $this->form_validation->set_rules($rules_array);
 
-                    if (!empty($results) && $results != '') {
-                        $r_password = $results['password'];
+            if ($this->form_validation->run() == TRUE) {
 
-                        if ($r_password == md5($password)) {
+                $email = trim($this->input->post('email'));
+                $password = trim($this->input->post('password'));
 
-                            if ($results['status'] == 8) {
-                                $data = array(
-                                    'last_login' => date('Y-m-d')
-                                );
-                                $this->db->where('email', $email);
-                                $this->db->update('interns', $data);
-                                $this->session->set_userdata('intern_id', $results['intern_id']);
-                                $this->session->set_userdata('first_name', $results['first_name']);
-                                $this->session->set_userdata('state_id', $results['state_id']);
-                                //echo "hello"; exit();
-                                echo '<script>window.location.href = "' . base_url() . 'intern-dashbord"</script>';
-                            } else {
-                                $this->session->set_userdata('error', 'Your Login has been block.');
-                            }
-                        } else {
+                // Fetch intern using trimmed email
+                $this->db->select('password, first_name, intern_id, state_id, status');
+                $this->db->from('interns');
+                $this->db->where('TRIM(email)', $email);
+                $results = $this->db->get()->row_array();
 
-                            $this->session->set_userdata('error', 'Wrong Password');
-                        }
+                // Email not found
+                if (empty($results)) {
+
+                    $this->session->set_userdata('error', 'Email Address does not exist.');
+
+                } else {
+
+                    // Password incorrect
+                    if ($results['password'] != md5($password)) {
+
+                        $this->session->set_userdata('error', 'Wrong Password.');
+
                     } else {
 
-                        $this->session->set_userdata('error', 'Please Enter Valid Email Address');
+                        // Account blocked
+                        if ($results['status'] != 8) {
+
+                            $this->session->set_userdata('error', 'Your login has been blocked.');
+
+                        } else {
+
+                            // Update clean email and last login
+                            $data = array(
+                                'email'      => $email,
+                                'last_login' => date('Y-m-d')
+                            );
+
+                            $this->db->where('intern_id', $results['intern_id']);
+                            $this->db->update('interns', $data);
+
+                            // Create session
+                            $this->session->set_userdata('intern_id', $results['intern_id']);
+                            $this->session->set_userdata('first_name', $results['first_name']);
+                            $this->session->set_userdata('state_id', $results['state_id']);
+
+                            redirect('intern-dashbord');
+                        }
                     }
                 }
             }
         }
-        $this->load->view('intern-login', $res);
     }
+
+    $this->load->view('intern-login', $res);
+}
 
 
     public function intern_logout()
