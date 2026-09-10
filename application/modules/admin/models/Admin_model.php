@@ -626,12 +626,15 @@ class admin_model extends CI_Model
 		$this->db->join('states s', 's.state_id = i.state_id', 'left');
 		$this->db->join('cities c', 'c.city_id = i.city_id', 'left');
 		$this->db->join('skills is', 'is.skill_id = i.skill_id', 'left');
+
 		if ($where != '') {
 			$this->db->where($where);
 		}
+
 		if ($search != '') {
 			$this->db->group_start();
-			$this->db->like('i.first_name', $search);
+			$this->db->like("CONCAT(i.first_name, ' ', i.last_name)", $search, 'both', false);
+			$this->db->or_like('i.first_name', $search);
 			$this->db->or_like('i.last_name', $search);
 			$this->db->or_like('i.email', $search);
 			$this->db->or_like('i.mobile', $search);
@@ -641,7 +644,6 @@ class admin_model extends CI_Model
 			$this->db->group_end();
 		}
 	}
-
 	function intern_enquiry_Data_count($where, $search = '')
 	{
 		$this->db->initialize();
@@ -656,6 +658,9 @@ class admin_model extends CI_Model
 		$this->db->initialize();
 		$this->intern_enquiry_query($where, $search);
 		$this->db->order_by($orderColumn, $orderDir);
+		if ($orderColumn != 'i.intern_id') {
+			$this->db->order_by('i.intern_id', 'DESC');
+		}
 		$this->db->limit($limit, $offset);
 		$query = $this->db->get();
 		$result = $query->result_array();
@@ -1464,10 +1469,10 @@ class admin_model extends CI_Model
 
 
 	public function send_certificate_by_feedback($where, $empId, $role)
-{
-    $this->db->initialize();
+	{
+		$this->db->initialize();
 
-    $this->db->select('
+		$this->db->select('
         emp.signature,
         fd.status as feedback_status,
         emp.emp_name,
@@ -1498,50 +1503,50 @@ class admin_model extends CI_Model
         i.gender
     ');
 
-    $this->db->from('interns i');
+		$this->db->from('interns i');
 
-    $latestSubmission = '(SELECT intern_id, MAX(sr_id) AS sr_id FROM intern_submission_report WHERE status=2 GROUP BY intern_id) latest_isr';
-    $this->db->join(
-        $latestSubmission,
-        'latest_isr.intern_id=i.intern_id',
-        'INNER',
-        false
-    );
-    $this->db->join(
-        'intern_submission_report isr',
-        'isr.sr_id=latest_isr.sr_id',
-        'INNER'
-    );
+		$latestSubmission = '(SELECT intern_id, MAX(sr_id) AS sr_id FROM intern_submission_report WHERE status=2 GROUP BY intern_id) latest_isr';
+		$this->db->join(
+			$latestSubmission,
+			'latest_isr.intern_id=i.intern_id',
+			'INNER',
+			false
+		);
+		$this->db->join(
+			'intern_submission_report isr',
+			'isr.sr_id=latest_isr.sr_id',
+			'INNER'
+		);
 
-    $latestFeedback = '(SELECT intern_id, MAX(feedback_id) AS feedback_id FROM feedback GROUP BY intern_id) latest_fd';
-    $this->db->join(
-        $latestFeedback,
-        'latest_fd.intern_id=i.intern_id',
-        'LEFT',
-        false
-    );
-    $this->db->join(
-        'feedback fd',
-        'fd.feedback_id=latest_fd.feedback_id',
-        'LEFT'
-    );
+		$latestFeedback = '(SELECT intern_id, MAX(feedback_id) AS feedback_id FROM feedback GROUP BY intern_id) latest_fd';
+		$this->db->join(
+			$latestFeedback,
+			'latest_fd.intern_id=i.intern_id',
+			'LEFT',
+			false
+		);
+		$this->db->join(
+			'feedback fd',
+			'fd.feedback_id=latest_fd.feedback_id',
+			'LEFT'
+		);
 
-    $this->db->join('interns_data id', 'id.intern_id=i.intern_id', 'LEFT');
-    $this->db->join('states s', 's.state_id=i.state_id', 'LEFT');
-    $this->db->join('cities c', 'c.city_id=i.city_id', 'LEFT');
+		$this->db->join('interns_data id', 'id.intern_id=i.intern_id', 'LEFT');
+		$this->db->join('states s', 's.state_id=i.state_id', 'LEFT');
+		$this->db->join('cities c', 'c.city_id=i.city_id', 'LEFT');
 
-    $this->db->join('employee emp', 'emp.emp_id="'.$empId.'"');
-    $this->db->join('master_role mr', 'mr.role_id="'.$role.'"');
-    $this->db->join('designation d', 'd.des_id=emp.des_id');
+		$this->db->join('employee emp', 'emp.emp_id="' . $empId . '"');
+		$this->db->join('master_role mr', 'mr.role_id="' . $role . '"');
+		$this->db->join('designation d', 'd.des_id=emp.des_id');
 
-    $this->db->join('skills sk', 'sk.skill_id=i.skill_id', 'LEFT');
+		$this->db->join('skills sk', 'sk.skill_id=i.skill_id', 'LEFT');
 
-    $this->db->where($where);
+		$this->db->where($where);
 
-    $this->db->order_by('i.intern_id','DESC');
+		$this->db->order_by('i.intern_id', 'DESC');
 
-    return $this->db->get()->result_array();
-}
+		return $this->db->get()->result_array();
+	}
 
 	public function fetch_emp_data($where)
 	{
@@ -2013,48 +2018,50 @@ class admin_model extends CI_Model
 
 
 	public function reschedule_mail_to_user($data)
-{
-    $data['adminEmail'] = $this->session->userdata('emp_email');
-    $mail = new PHPMailer();
+	{
+		$data['adminEmail'] = $this->session->userdata('emp_email');
+		$mail = new PHPMailer();
 
-    $to = $data['user_email'];
-    
-    // Format old date for subject
-    $old_date_str = '';
-    if (isset($data['old_schedule_date']) && !empty($data['old_schedule_date']) && 
-        isset($data['old_schedule_time']) && !empty($data['old_schedule_time'])) {
-        $old_date_str = date("F d, Y h:i A", strtotime($data['old_schedule_date'] . ' ' . $data['old_schedule_time']));
-    } else {
-        $old_date_str = 'Previous Schedule';
-    }
-    
-    $subject = 'Interview Rescheduled - ' . $data['new_mode'];
-    $message = $this->load->view('admin/reschedule_mail_to_user', $data, TRUE);
-    
-    $mail->IsSMTP();
-    $mail->Host = 'smtp.office365.com';
-    $mail->SMTPDebug = 0;
-    $mail->SMTPAuth = true;
-    $mail->SMTPSecure = "tls";
-    $mail->Port = 587;
-    $mail->Username = "noreply@crymail.org";
-    $mail->Password = "^%n7wh#m7_2k";
-    $mail->setFrom('noreply@crymail.org');
-    $mail->FromName = "CRY VE Team";
-    $mail->AddAddress($to);
-    $mail->addBCC('mahendra.s@neuralinfo.org');
-    $mail->addBCC($data['adminEmail']);
-    $mail->IsHTML(true);
-    $mail->Subject = $subject;
-    $mail->Body = $message;
-    
-    if ($mail->Send()) {
-        return true;
-    } else {
-        log_message('error', 'Reschedule mail error: ' . $mail->ErrorInfo);
-        return false;
-    }
-}
+		$to = $data['user_email'];
+
+		// Format old date for subject
+		$old_date_str = '';
+		if (
+			isset($data['old_schedule_date']) && !empty($data['old_schedule_date']) &&
+			isset($data['old_schedule_time']) && !empty($data['old_schedule_time'])
+		) {
+			$old_date_str = date("F d, Y h:i A", strtotime($data['old_schedule_date'] . ' ' . $data['old_schedule_time']));
+		} else {
+			$old_date_str = 'Previous Schedule';
+		}
+
+		$subject = 'Interview Rescheduled - ' . $data['new_mode'];
+		$message = $this->load->view('admin/reschedule_mail_to_user', $data, TRUE);
+
+		$mail->IsSMTP();
+		$mail->Host = 'smtp.office365.com';
+		$mail->SMTPDebug = 0;
+		$mail->SMTPAuth = true;
+		$mail->SMTPSecure = "tls";
+		$mail->Port = 587;
+		$mail->Username = "noreply@crymail.org";
+		$mail->Password = "^%n7wh#m7_2k";
+		$mail->setFrom('noreply@crymail.org');
+		$mail->FromName = "CRY VE Team";
+		$mail->AddAddress($to);
+		$mail->addBCC('mahendra.s@neuralinfo.org');
+		$mail->addBCC($data['adminEmail']);
+		$mail->IsHTML(true);
+		$mail->Subject = $subject;
+		$mail->Body = $message;
+
+		if ($mail->Send()) {
+			return true;
+		} else {
+			log_message('error', 'Reschedule mail error: ' . $mail->ErrorInfo);
+			return false;
+		}
+	}
 
 
 

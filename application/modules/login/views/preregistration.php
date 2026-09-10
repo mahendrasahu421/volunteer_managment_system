@@ -104,6 +104,22 @@
 
     .is-invalid {
         border-color: #dc3545 !important;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.15);
+    }
+
+    .validation-summary {
+        display: none;
+        margin-bottom: 1rem;
+        padding: 0.75rem 1rem;
+        border-radius: 0.35rem;
+        background: #fff3f3;
+        border: 1px solid #f5c2c7;
+        color: #842029;
+        font-size: 0.95rem;
+    }
+
+    .validation-summary.visible {
+        display: block;
     }
 </style>
 
@@ -155,6 +171,7 @@
                             <form class="login100-form validate-form needs-validation" id="sform" method="post"
                                 action="<?php echo base_url(); ?>insert_preregistration_data"
                                 enctype="multipart/form-data" novalidate>
+                                <div id="formValidationSummary" class="validation-summary" role="alert"></div>
                                 <section id="emailSection" style="display:block;">
                                     <div class="row">
                                         <input type="hidden" id="mailotp" name="cotp">
@@ -441,12 +458,14 @@
                                     <div class="form-group col-md-12 mb-0 select-dropdown1" id="">
                                         <div class="form-group" id="cv">
                                             <label class="form-label fw-bold">Upload Your CV <sup class="fs-3"
-                                                    style="color: red;">*</sup><small><b>(Only PDF, Max
-                                                        2MB)</b></small></label>
+                                                    style="color: red;">*</sup></label>
+                                            <div class="text-muted mb-2" style="font-size: 13px;">
+                                                Please upload a PDF file only. Maximum file size: 2MB.
+                                            </div>
                                             <input type="file" name="Uploade_file" id="file" class="form-control"
                                                 accept=".pdf" aria-label="file example" required>
                                             <span style="color: red; font-size: 12px; display: block; margin-top: 5px;"
-                                                id="file_error"></span>
+                                                id="file_error">Upload limit: 2MB, PDF only.</span>
                                         </div>
                                     </div>
 
@@ -488,76 +507,222 @@
     </div>
 
     <script>
-        // File validation - 2MB limit
-        document.getElementById('file').addEventListener('change', function (e) {
-            const file = this.files[0];
+        function showValidationSummary(messages) {
+            const summaryBox = document.getElementById('formValidationSummary');
+            if (!summaryBox) return;
+            summaryBox.innerHTML = messages.join('<br>');
+            summaryBox.classList.add('visible');
+            summaryBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function clearFieldError(field) {
+            if (!field) return;
+            field.classList.remove('is-invalid');
+            field.setAttribute('aria-invalid', 'false');
+            field.setCustomValidity('');
+        }
+
+        function addFieldError(field, message) {
+            if (!field) return;
+            field.classList.add('is-invalid');
+            field.setAttribute('aria-invalid', 'true');
+            field.setCustomValidity(message);
+            field.reportValidity();
+        }
+
+        function validateFileField() {
+            const fileInput = document.getElementById('file');
             const errorSpan = document.getElementById('file_error');
-            const maxSize = 2 * 1024 * 1024; // 2MB in bytes
+            const maxSize = 2 * 1024 * 1024;
 
-            if (file) {
-                // Check file type
-                if (file.type !== 'application/pdf') {
-                    errorSpan.innerHTML = '❌ Only PDF files are allowed!';
-                    this.value = ''; // Clear the file input
-                    this.classList.add('is-invalid');
-                    return false;
+            if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+                if (errorSpan) {
+                    errorSpan.innerHTML = 'Please upload your CV. PDF only, max size 2MB.';
+                    errorSpan.style.color = 'red';
                 }
-
-                // Check file size (2MB limit)
-                if (file.size > maxSize) {
-                    errorSpan.innerHTML = '❌ File size should not exceed 2MB! Your file size: ' + (file.size / 1024 / 1024).toFixed(2) + 'MB';
-                    this.value = ''; // Clear the file input
-                    this.classList.add('is-invalid');
-                    return false;
-                } else {
-                    errorSpan.innerHTML = '✓ File is valid (PDF, ' + (file.size / 1024).toFixed(2) + 'KB)';
-                    errorSpan.style.color = 'green';
-                    this.classList.remove('is-invalid');
-                    return true;
-                }
+                return false;
             }
-        });
-    </script>
 
-    <script>
-        // Disable submit button on form submission to prevent double submission
+            const file = fileInput.files[0];
+            const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+            if (!isPdf) {
+                if (errorSpan) {
+                    errorSpan.innerHTML = 'Only PDF files are allowed. Please upload your CV again in PDF format.';
+                    errorSpan.style.color = 'red';
+                }
+                addFieldError(fileInput, 'Only PDF files are allowed. Please upload a PDF copy of your CV.');
+                return false;
+            }
+
+            if (file.size > maxSize) {
+                if (errorSpan) {
+                    errorSpan.innerHTML = 'Your CV is too large. Please upload a file smaller than 2MB.';
+                    errorSpan.style.color = 'red';
+                }
+                addFieldError(fileInput, 'Your CV is too large. Please upload a file smaller than 2MB.');
+                fileInput.value = '';
+                return false;
+            }
+
+            if (errorSpan) {
+                errorSpan.innerHTML = '✓ File looks good. PDF only, size: ' + (file.size / 1024 / 1024).toFixed(2) + 'MB';
+                errorSpan.style.color = 'green';
+            }
+            clearFieldError(fileInput);
+            return true;
+        }
+
+        function validateForm() {
+            const form = document.getElementById('sform');
+            if (!form) return true;
+
+            const fields = form.querySelectorAll('input[required], select[required], textarea[required]');
+            let errors = [];
+
+            fields.forEach(function (field) {
+                clearFieldError(field);
+            });
+
+            const email = form.querySelector('#email');
+            if (email && (!email.value.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim()))) {
+                errors.push('Please enter a valid email address.');
+                addFieldError(email, 'Please enter a valid email address.');
+            }
+
+            const firstName = form.querySelector('#first_name');
+            if (firstName && (!firstName.value.trim() || !/^[A-Za-z\s.'-]{2,}$/.test(firstName.value.trim()))) {
+                errors.push('Please enter a valid first name.');
+                addFieldError(firstName, 'Please enter a valid first name.');
+            }
+
+            const lastName = form.querySelector('#last_name');
+            if (lastName && (!lastName.value.trim() || !/^[A-Za-z\s.'-]{2,}$/.test(lastName.value.trim()))) {
+                errors.push('Please enter a valid last name.');
+                addFieldError(lastName, 'Please enter a valid last name.');
+            }
+
+            const dob = form.querySelector('#dob');
+            if (dob && (!dob.value.trim() || new Date(dob.value) > new Date())) {
+                errors.push('Please select a valid date of birth.');
+                addFieldError(dob, 'Please select a valid date of birth.');
+            }
+
+            const gender = form.querySelector('[name="gender"]');
+            if (gender && !gender.value) {
+                errors.push('Please select your gender.');
+                addFieldError(gender, 'Please select your gender.');
+            }
+
+            const mobile = form.querySelector('#mobile');
+            if (mobile && (!mobile.value.trim() || !/^\d{10,13}$/.test(mobile.value.trim()))) {
+                errors.push('Please enter a valid mobile number with 10 to 13 digits.');
+                addFieldError(mobile, 'Please enter a valid mobile number with 10 to 13 digits.');
+            }
+
+            const country = form.querySelector('#country_id');
+            if (country && !country.value) {
+                errors.push('Please select your country.');
+                addFieldError(country, 'Please select your country.');
+            }
+
+            const state = form.querySelector('#state_name');
+            if (state && !state.value) {
+                errors.push('Please select your state.');
+                addFieldError(state, 'Please select your state.');
+            }
+
+            const city = form.querySelector('#city_name');
+            if (city && !city.value) {
+                errors.push('Please select your district or city.');
+                addFieldError(city, 'Please select your district or city.');
+            }
+
+            const occupation = form.querySelector('#occupation');
+            if (occupation && !occupation.value) {
+                errors.push('Please select your occupation.');
+                addFieldError(occupation, 'Please select your occupation.');
+            }
+
+            const internshipType = form.querySelector('#internshipType');
+            if (internshipType && !internshipType.value) {
+                errors.push('Please choose your internship type.');
+                addFieldError(internshipType, 'Please choose your internship type.');
+            }
+
+            const duration = form.querySelector('#internSkill_id');
+            if (duration && !duration.value) {
+                errors.push('Please select the internship duration.');
+                addFieldError(duration, 'Please select the internship duration.');
+            }
+
+            const opportunity = form.querySelector('#where_know_opportunity');
+            if (opportunity && !opportunity.value) {
+                errors.push('Please tell us how you heard about this opportunity.');
+                addFieldError(opportunity, 'Please tell us how you heard about this opportunity.');
+            }
+
+            const skillSelects = form.querySelectorAll('select[name="skill_id[]"]');
+            let hasSkillSelected = false;
+            skillSelects.forEach(function (select) {
+                if (select.value) hasSkillSelected = true;
+            });
+            if (!hasSkillSelected) {
+                errors.push('Please select at least one skill that matches your profile.');
+                skillSelects.forEach(function (select) {
+                    addFieldError(select, 'Please select at least one skill.');
+                });
+            }
+
+            const pastVolunteering = form.querySelector('#pastVolunteering');
+            if (pastVolunteering && (!pastVolunteering.value.trim() || pastVolunteering.value.trim().length > 250)) {
+                errors.push('Please share your past volunteering or internship experience in 250 characters or less.');
+                addFieldError(pastVolunteering, 'Please share your past volunteering or internship experience in 250 characters or less.');
+            }
+
+            const youAim = form.querySelector('#youAim');
+            if (youAim && (!youAim.value.trim() || youAim.value.trim().length > 250)) {
+                errors.push('Please tell us what you hope to contribute in 250 characters or less.');
+                addFieldError(youAim, 'Please tell us what you hope to contribute in 250 characters or less.');
+            }
+
+            if (!validateFileField()) {
+                errors.push('Please upload your CV in PDF format and keep it under 2MB.');
+            }
+
+            if (errors.length > 0) {
+                showValidationSummary(errors);
+                return false;
+            }
+
+            const summaryBox = document.getElementById('formValidationSummary');
+            if (summaryBox) {
+                summaryBox.innerHTML = '';
+                summaryBox.classList.remove('visible');
+            }
+            return true;
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             const form = document.getElementById('sform');
             const submitBtn = document.getElementById('preregistration');
             const fileInput = document.getElementById('file');
 
+            if (fileInput) {
+                fileInput.addEventListener('change', validateFileField);
+            }
+
             if (form && submitBtn) {
-                form.addEventListener('submit', function (e) {
-                    // Check file size again before submission
-                    const file = fileInput.files[0];
-                    const maxSize = 2 * 1024 * 1024; // 2MB
-
-                    if (file) {
-                        if (file.size > maxSize) {
-                            e.preventDefault();
-                            document.getElementById('file_error').innerHTML = '❌ File size should not exceed 2MB!';
-                            document.getElementById('file_error').style.color = 'red';
-                            alert('Please upload a file smaller than 2MB');
-                            return false;
-                        }
-                        if (file.type !== 'application/pdf') {
-                            e.preventDefault();
-                            document.getElementById('file_error').innerHTML = '❌ Only PDF files are allowed!';
-                            document.getElementById('file_error').style.color = 'red';
-                            alert('Please upload only PDF files');
-                            return false;
-                        }
+                form.addEventListener('submit', function (event) {
+                    if (!validateForm()) {
+                        event.preventDefault();
+                        return false;
                     }
 
-                    // Check if form is valid before disabling button
-                    if (form.checkValidity()) {
-                        // Disable the submit button
-                        submitBtn.disabled = true;
-                        // Change button text to show processing
-                        submitBtn.innerHTML = 'Submitting... <i class="fa fa-spinner fa-spin"></i>';
-                        submitBtn.style.opacity = '0.6';
-                        submitBtn.style.cursor = 'not-allowed';
-                    }
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = 'Submitting... <i class="fa fa-spinner fa-spin"></i>';
+                    submitBtn.style.opacity = '0.6';
+                    submitBtn.style.cursor = 'not-allowed';
                 });
             }
         });
